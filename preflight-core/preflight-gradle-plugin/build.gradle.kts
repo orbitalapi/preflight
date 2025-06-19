@@ -34,10 +34,6 @@ tasks.test {
     useJUnitPlatform()
 }
 
-signing {
-    useGpgCmd()
-    sign(publishing.publications["pluginMaven"])
-}
 
 gradlePlugin {
     website.set("https://github.com/orbitalapi/preflight")
@@ -63,6 +59,7 @@ publishing {
 }
 
 tasks.shadowJar {
+    archiveClassifier.set("")  // Make this the main JAR
     dependencies {
         include(project(":preflight-runtime"))
         include(dependency("org.taxilang:.*"))
@@ -71,5 +68,6 @@ tasks.shadowJar {
 }
 
 signing {
+    useGpgCmd()
     sign(publishing.publications)
 }
