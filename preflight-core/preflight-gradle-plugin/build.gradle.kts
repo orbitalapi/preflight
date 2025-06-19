@@ -3,9 +3,15 @@ plugins {
     `java-gradle-plugin`
     `maven-publish`
     signing
+    id("com.gradleup.shadow") version "9.0.0-beta17"
 }
 
-
+buildscript {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
 val taxiVersion = "1.64.0"
 val orbitalVersion = "0.35.0"
 
@@ -48,6 +54,14 @@ publishing {
             name = "localTest"
             url = uri("${project.rootDir}/../maven-repo")
         }
+    }
+}
+
+tasks.shadowJar {
+    dependencies {
+        include(project(":preflight-runtime"))
+        include(dependency("org.taxilang:.*"))
+        include(dependency("com.orbitalhq:.*"))
     }
 }
 
