@@ -2,6 +2,7 @@ plugins {
     `kotlin-dsl`
     `java-gradle-plugin`
     `maven-publish`
+    signing
 }
 
 
@@ -28,10 +29,15 @@ tasks.test {
 }
 
 gradlePlugin {
+    website.set("https://github.com/orbitalapi/preflight")
+    vcsUrl.set("https://github.com/orbitalapi/preflight")
     plugins {
         create("preflight") {
             id = "com.orbitalhq.preflight"
             implementationClass = "com.orbitalhq.preflight.gradle.PreflightPlugin"
+            displayName = "Orbital Preflight Gradle Plugin"
+            description = "Gradle plugin for running tests against Orbital and Taxi projects"
+            tags.set(listOf("preflight", "taxi", "orbital"))
         }
     }
 }
@@ -43,4 +49,8 @@ publishing {
             url = uri("${project.rootDir}/../maven-repo")
         }
     }
+}
+
+signing {
+    sign(publishing.publications)
 }
