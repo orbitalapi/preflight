@@ -2,7 +2,7 @@
 
 Preflight is a tool for writing unit and integration tests for Taxi projects
 
-It's built in Kotlin, and is a lightweight wrapper around [Kotest](https://kotest.io/)'s [DescribeSpec(https://kotest.io/docs/framework/testing-styles.html#describe-spec)].
+It's built in Kotlin, and is a lightweight wrapper around [Kotest](https://kotest.io/)'s [DescribeSpec](https://kotest.io/docs/framework/testing-styles.html#describe-spec).
 
 ![Video showing running tests](readme-assets/running-tests.webp)
 
@@ -12,7 +12,7 @@ It supports:
 * Compiling Taxi projects
 * Testing Taxi queries
 * Stubbing data sources
-* Running against real data sources using [Nebula](https://nebula.orbitalhq.com) in tests is planned
+* (Planned): Running against real data sources using [Nebula](https://nebula.orbitalhq.com) in tests is planned
 
 ## Adding Preflight to your Taxi project
 
@@ -29,6 +29,20 @@ plugins {
     id("com.orbitalhq.preflight")
 }
 ```
+
+### On Taxi CLI vs Gradle
+We plan to provide full support for executing tests using the Taxi CLI, which will make Gradle optional for CI/CD purposes.
+
+However, the Preflight Gradle Plugin offers additional benefits beyond test execution:
+- Configures IntelliJ source roots for better IDE integration
+- Enables Kotlin code completion when writing tests
+- Provides a seamless development experience within existing Gradle projects
+
+> **Note**: Code completion is available for Kotlin test code only. IntelliJ does not currently support code completion for Taxi schema files.
+
+For this reason, we plan to support both approaches:
+- **Gradle Plugin**: Recommended for development due to superior IDE experience
+- **Taxi CLI**: Ideal for lightweight CI/CD pipelines and standalone execution
 
 ## Writing tests
 Tests are written using Kotlin, following Kotest's [Describe spec](https://kotest.io/docs/framework/testing-styles.html#describe-spec) style.
