@@ -1,12 +1,22 @@
 package com.orbitalhq.preflight.dsl
 
-fun stub(name: String): StubResponseBuilder {
-    return StubResponseBuilder(name)
+/**
+ * Generates a Stub response builder for an operation with
+ * the provided name.
+ *
+ * The test engine will search all services for an operation
+ * with the matching name
+ */
+fun stub(operationName: String): StubResponseBuilder {
+    return StubResponseBuilder(operationName)
 }
 
-data class StubResponseBuilder(val name: String) {
+data class StubResponseBuilder(val operationName: String) {
+    /**
+     * Accepts a JSON response which is returned from the remote call.
+     */
     fun returns(response: String): StubScenario {
-        return StubScenario(name, response)
+        return StubScenario(operationName, response)
     }
 }
 

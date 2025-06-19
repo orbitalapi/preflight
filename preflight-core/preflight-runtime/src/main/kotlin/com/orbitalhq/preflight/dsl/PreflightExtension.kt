@@ -64,7 +64,7 @@ class PreflightExtension(val projectRoot: Path = Paths.get("./")) : BeforeSpecLi
         }
     }
 
-    fun orbital(taxi:TaxiDocument = this.taxi):Pair<Orbital, StubService> {
+    fun orbital():Pair<Orbital, StubService> {
         return testVyne(this.schema)
     }
 

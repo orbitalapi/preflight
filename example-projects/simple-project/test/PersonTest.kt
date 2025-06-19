@@ -9,21 +9,21 @@ import io.kotest.matchers.shouldBe
 class PersonTest : OrbitalSpec({
     describe("Simple tests") {
         it("returning a scalar") {
-            """find { 1 + 2}""".queryForScalar()
+            """find { 1 + 2 }""".queryForScalar()
                 .shouldBe(3)
         }
         it("returning an object") {
-            """given { Person = { age: 12 } }
+            """given { Person = { id: 123, age: 12 } }
                 find { PossibleAdult }    
                 """.queryForObject()
                 .shouldBe(
                     mapOf(
+                        "id" to 123,
                         "age" to 12,
                         "isAdult" to false
                     )
                 )
         }
-
     }
 
 
