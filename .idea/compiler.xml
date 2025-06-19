@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <bytecodeTargetLevel target="1.6">
+      <module name="orbital-preflight.buildSrc" target="21" />
+      <module name="orbital-preflight.buildSrc.main" target="21" />
+      <module name="orbital-preflight.buildSrc.test" target="21" />
+      <module name="preflight" target="21" />
+      <module name="preflight.buildSrc" target="21" />
+      <module name="preflight.buildSrc.main" target="21" />
+      <module name="preflight.buildSrc.test" target="21" />
+      <module name="preflight.main" target="21" />
+      <module name="preflight.preflight-plugin" target="17" />
+      <module name="preflight.preflight-plugin.main" target="17" />
+      <module name="preflight.preflight-plugin.test" target="17" />
+      <module name="preflight.preflight-runtime.main" target="17" />
+      <module name="preflight.preflight-runtime.test" target="17" />
+      <module name="preflight.test" target="21" />
+    </bytecodeTargetLevel>
+  </component>
+</project>

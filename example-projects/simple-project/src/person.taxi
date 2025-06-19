@@ -1,0 +1,16 @@
+type Age inherits Int
+type PersonId inherits Int
+model Person {
+id : PersonId
+   age : Age
+}
+
+model PossibleAdult inherits Person {
+    isAdult : IsAdult
+}
+
+type IsAdult inherits Boolean = (age:Age) -> age > 18
+
+service PersonApi {
+    operation getPerson(PersonId):Person(...)
+}
