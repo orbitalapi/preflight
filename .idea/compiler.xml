@@ -5,10 +5,6 @@
       <module name="orbital-preflight.buildSrc" target="21" />
       <module name="orbital-preflight.buildSrc.main" target="21" />
       <module name="orbital-preflight.buildSrc.test" target="21" />
-      <module name="preflight" target="21" />
-      <module name="preflight.buildSrc" target="21" />
-      <module name="preflight.buildSrc.main" target="21" />
-      <module name="preflight.buildSrc.test" target="21" />
       <module name="preflight.main" target="21" />
       <module name="preflight.preflight-plugin" target="17" />
       <module name="preflight.preflight-plugin.main" target="17" />
