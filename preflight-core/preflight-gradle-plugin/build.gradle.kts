@@ -34,6 +34,11 @@ tasks.test {
     useJUnitPlatform()
 }
 
+signing {
+    useGpgCmd()
+    sign(publishing.publications["pluginMaven"])
+}
+
 gradlePlugin {
     website.set("https://github.com/orbitalapi/preflight")
     vcsUrl.set("https://github.com/orbitalapi/preflight")
