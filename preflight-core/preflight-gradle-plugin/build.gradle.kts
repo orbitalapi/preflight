@@ -4,6 +4,7 @@ plugins {
     `maven-publish`
     signing
     id("com.gradleup.shadow") version "9.0.0-beta17"
+    id("com.gradle.plugin-publish") version "1.3.1"
 }
 
 buildscript {
