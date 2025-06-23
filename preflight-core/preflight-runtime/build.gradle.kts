@@ -3,8 +3,8 @@ plugins {
     `maven-publish`
 }
 
-val taxiVersion = "1.64.0"
-val orbitalVersion = "0.35.0"
+val taxiVersion = "1.65.0"
+val orbitalVersion = "0.36.0-M4"
 
 dependencies {
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
@@ -57,4 +57,31 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            from(components["java"])
+
+            // Optional: customize the publication
+//            artifactId = "preflight-runtime"
+            // groupId and version are inherited from the project
+        }
+    }
+    repositories {
+        mavenLocal()
+        maven {
+            name = "orbital"
+            url = if (version.toString().endsWith("SNAPSHOT")) {
+                uri("s3://repo.orbitalhq.com/snapshot")
+            } else {
+                uri("s3://repo.orbitalhq.com/release")
+            }
+            credentials(AwsCredentials::class) {
+                accessKey = providers.environmentVariable("AWS_ACCESS_KEY_ID").orNull
+                secretKey = providers.environmentVariable("AWS_SECRET_ACCESS_KEY").orNull
+            }
+        }
+    }
 }

@@ -13,8 +13,6 @@ buildscript {
         mavenCentral()
     }
 }
-val taxiVersion = "1.64.0"
-val orbitalVersion = "0.35.0"
 
 repositories {
     mavenCentral()
@@ -50,15 +48,6 @@ gradlePlugin {
     }
 }
 
-publishing {
-    repositories {
-        maven {
-            name = "localTest"
-            url = uri("${project.rootDir}/../maven-repo")
-        }
-    }
-}
-
 tasks.shadowJar {
     archiveClassifier.set("")  // Make this the main JAR
     dependencies {
@@ -69,9 +58,80 @@ tasks.shadowJar {
 }
 
 signing {
-    useInMemoryPgpKeys(
-        System.getenv("GPG_PRIVATE_KEY"),
-        System.getenv("GPG_PASSPHRASE")
-    )
+    val gpgPrivateKey = System.getenv("GPG_PRIVATE_KEY")
+    val gpgPassphrase = System.getenv("GPG_PASSPHRASE")
+
+    if (gpgPrivateKey != null && gpgPassphrase != null) {
+        // GitHub Actions path - use environment variables
+        useInMemoryPgpKeys(gpgPrivateKey, gpgPassphrase)
+    } else {
+        // Local development path - use gradle.properties
+        // Gradle will automatically pick up signing.keyId and signing.password
+    }
     sign(publishing.publications)
+}
+
+publishing {
+    repositories {
+        mavenLocal()
+        maven {
+            name = "orbital"
+            url = if (version.toString().endsWith("SNAPSHOT")) {
+                uri("s3://repo.orbitalhq.com/snapshot")
+            } else {
+                uri("s3://repo.orbitalhq.com/release")
+            }
+            credentials(AwsCredentials::class) {
+                accessKey = providers.environmentVariable("AWS_ACCESS_KEY_ID").orNull
+                secretKey = providers.environmentVariable("AWS_SECRET_ACCESS_KEY").orNull
+            }
+        }
+    }
+}
+
+// Capture the version at script level (configuration time)
+//val projectVersion = project.version.toString()
+/**
+ * Generates a Versions.kt file containing the current version of this project
+ * which we can use inside the plugin code
+ */
+val generateVersionConstants by tasks.registering {
+    description = "Generate version constants for plugin"
+
+    val outputDir = layout.buildDirectory.dir("generated/kotlin")
+    val outputFile = outputDir.get().file("com/orbitalhq/preflight/Versions.kt")
+
+    // Use Provider API - this is configuration cache safe
+    val versionProvider = providers.provider { version.toString() }
+
+    inputs.property("version", versionProvider)
+    outputs.file(outputFile)
+
+    doLast {
+        val versionString = versionProvider.get()
+        outputFile.asFile.parentFile.mkdirs()
+        outputFile.asFile.writeText("""
+            package com.orbitalhq.preflight
+            
+            object Versions {
+                const val PREFLIGHT_VERSION = "$versionString"
+            }
+        """.trimIndent())
+    }
+}
+
+tasks.compileKotlin {
+    dependsOn(generateVersionConstants)
+}
+// Fix the sourcesJar dependency issue - only if the task exists
+tasks.matching { it.name == "sourcesJar" }.configureEach {
+    dependsOn(generateVersionConstants)
+}
+// Add the generated source to the source set
+kotlin {
+    sourceSets {
+        main {
+            kotlin.srcDir(layout.buildDirectory.dir("generated/kotlin"))
+        }
+    }
 }

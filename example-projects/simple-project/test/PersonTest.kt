@@ -1,4 +1,3 @@
-import com.orbitalhq.firstRawValue
 import com.orbitalhq.preflight.dsl.OrbitalSpec
 import com.orbitalhq.preflight.dsl.PreflightExtension
 import com.orbitalhq.preflight.dsl.stub
@@ -23,6 +22,13 @@ class PersonTest : OrbitalSpec({
                         "isAdult" to false
                     )
                 )
+        }
+        it("can use stdlib functions") {
+            """find {
+                shouldBeTrue : Boolean = "hello".startsWith("he")
+            }
+            """.queryForObject()
+                .shouldBe(mapOf("shouldBeTrue" to true))
         }
     }
 
