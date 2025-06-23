@@ -1,4 +1,3 @@
-
 plugins {
     kotlin("jvm")
     `maven-publish`
@@ -25,6 +24,23 @@ dependencies {
         // Not published to maven central, and not needed for testing
         // as it relates to saml auth
         exclude(group = "org.pac4j")
+    }
+    implementation("com.orbitalhq:schema-server-core:$orbitalVersion") {
+        // This could become an issue - but this isn't published to maven central
+        // If we end up needing this, we'll need to configure
+        //  <repositories>
+        //      <repository>
+        //         <id>confluent</id>
+        //         <url>https://packages.confluent.io/maven/</url>
+        //      </repository>
+        //   </repositories>
+        exclude(group = "io.confluent")
+        // As above
+        exclude(group = "org.pac4j")
+
+        // This might need adding (and shading), but later...
+        // Can we avoid by just using the OSS version in Preflight?
+        exclude(group = "org.jooq.pro")
     }
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
     implementation(platform("io.kotest:kotest-bom:5.8.0"))
