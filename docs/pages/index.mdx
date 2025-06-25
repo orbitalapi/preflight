@@ -1,0 +1,101 @@
+---
+title: Getting Started
+---
+
+## Preflight - Unit and integration testing
+Preflight is a test framework for [Taxi](https://taxilang.org) and [Orbital](https://orbitalhq.com) projects
+
+Preflight is built in [Kotlin](https://kotlinlang.org/), on top of [Kotest](https://kotest.io), giving a familiar test syntax, and access to a powerful, standard set of assertions.
+
+In addition, Preflight provides a series of helpers and test utilities to make working with Taxi and Orbital projects easier.
+
+Preflight supports:
+* Automatically compiling Taxi projects
+* Testing Taxi queries
+* Stubbing data sources
+* (Planned): Running against real data sources using [Nebula](https://nebula.orbitalhq.com) in tests is planned ([GH Issue](https://github.com/orbitalapi/preflight/issues/2))
+
+Preflight tests are executed using [Gradle](https://gradle.org/) (today), and the Taxi CLI (future). (See [here](#why-gradle) for discussion on why we use Gradle for preflight)
+
+## Getting started
+First, add a `build.gradle.kts` file in your Taxi project root (next to your `taxi.conf`) file.
+
+```kotlin
+// build.gradle.kts
+plugins {
+    kotlin("jvm") version "1.9.23"
+    id("com.orbitalhq.preflight") version "0.0.3" // Whatever the current latest version is
+}
+```
+
+Then, to write your first test, create a folder `test` next to your `src` folder.
+By convention, these are named ending in `Spec.kt` or `Test.kt`.
+
+```kotlin
+// test/HelloWorldSpec.kt
+
+class HelloWorldSpec : OrbitalSpec({
+    describe("First test") {
+        it("should perform a simple assertion") {
+              """find { 1 + 2 }""".queryForScalar()
+                .shouldBe(3)
+        }
+    }
+})
+```
+
+Tests can now be run by executing:
+
+```
+gradle test
+```
+
+### Recommended - Installing Gradle
+Preflight uses Gradle to run tests in your CI/CD.
+
+There's a number of ways of [installing Gradle](https://gradle.org/install/) - a common one is using [SDKMAN!](http://sdkman.io/):
+
+```bash
+sdk install gradle
+```
+
+or, if using [Homebrew](http://brew.sh/)
+
+```bash
+ brew install gradle
+```
+
+By convention (and Gradle best practice), Gradle reccomend adding a small lightweight wrapper with Gradle projects,
+which makes them portable for users who don't have Gradle installed.
+
+You can generate this by running:
+
+```bash
+gradle wrapper
+```
+
+This will generate:
+
+ - `gradlew`
+ - `gradlew.bat`
+ - `gradle/wrapper/gradle-wrapper.jar`
+ - `gradle/wrapper/gradle-wrapper.properties`
+
+By convention, these files are typically checked into your source control
+
+
+### Why Gradle?
+We plan to provide full support for executing tests using the Taxi CLI, which will make Gradle optional for CI/CD purposes.
+
+However, the Preflight Gradle Plugin offers additional benefits beyond test execution:
+- Configures IntelliJ or VSCode source roots for better IDE integration
+- Enables Kotlin code completion when writing tests
+- Provides a seamless development experience within existing Gradle projects
+
+> **Note**: Code completion is available for Kotlin test code only. IntelliJ does not currently support code completion for Taxi schema files.
+
+For this reason, we plan to support both approaches:
+- **Gradle Plugin**: Recommended for development due to superior IDE experience
+- **Taxi CLI**: Ideal for lightweight CI/CD pipelines and standalone execution
+
+

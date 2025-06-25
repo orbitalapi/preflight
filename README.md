@@ -12,7 +12,7 @@ It supports:
 * Compiling Taxi projects
 * Testing Taxi queries
 * Stubbing data sources
-* (Planned): Running against real data sources using [Nebula](https://nebula.orbitalhq.com) in tests is planned
+* (Planned): Running against real data sources using [Nebula](https://nebula.orbitalhq.com) in tests is planned [#2]
 
 ## Adding Preflight to your Taxi project
 
