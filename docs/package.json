@@ -1,5 +1,5 @@
 {
-  "name": "nebula-docs",
+  "name": "preflight-docs",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -9,7 +9,7 @@
     "start": "next start"
   },
   "author": "",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "dependencies": {
     "next": "^14.2.8",
     "nextra": "^3.2.5",

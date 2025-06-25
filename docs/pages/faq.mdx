@@ -1,0 +1,62 @@
+---
+title: Tips and FAQs
+---
+# Tips and FAQ's
+
+
+### How do I get the command line to show me the tests that have been run?
+By default, the Gradle output is quite quiet (compared to Maven or other build tools).
+
+To get more information about tests as they're being run, add the following to your `build.gradle.kts`:
+
+```kotlin
+tasks.test {
+    testLogging {
+        events("started", "passed", "failed", "skipped")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.SHORT
+        showStandardStreams = false
+    }
+}
+```
+
+### Where are the test reports
+ * An HTML browsable output is created at `build/reports/tests/test/index.html`
+ * The standard XML test reports (JUnit style) are at `build/repoirts/test-results/test`
+
+
+### My test failed, but the two numbers look the same
+This is a common issue:
+
+```
+io.kotest.assertions.AssertionFailedError: Values differed at keys amount
+expected:<{
+  "value" = 100
+}> but was:<{
+  "value" = 100
+}>
+```
+
+When types in Taxi are declared as `Decimal`, then they are returned to the JVM as `BigDecimal`.
+
+For example, given the model:
+
+```taxi
+model Purchase {
+  value : Amount inherits Decimal
+}
+```
+
+Then in a test:
+
+```kotlin
+it("should compare decimal numbers") {
+    """
+    given { Purchase = { value: 20 } }
+    find { Purchase }
+    """.queryForObject()
+        .shouldBe(mapOf(
+            "value" to 20, // wrong - don't do this
+            "value" to 20.toBigDecimal(), // correct - do this
+        ))
+}
+```

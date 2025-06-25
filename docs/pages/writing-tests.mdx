@@ -1,0 +1,151 @@
+---
+title: Writing tests
+---
+
+# Writing tests
+
+Tests are written using Kotlin, following Kotest's [Describe spec](https://kotest.io/docs/framework/testing-styles.html#describe-spec) style.
+
+ * Tests are placed anywhere under the `test/` directory of your Taxi project.
+ * Test files should be named with a suffix of either `Test.kt` or `Spec.kt`
+
+A custom base class of `OrbitalSpec` is provided, which provides several convenience functions to make testing easier:
+
+```kotlin
+import com.orbitalhq.preflight.dsl.OrbitalSpec
+import io.kotest.matchers.shouldBe
+
+class PersonTest : OrbitalSpec({
+    describe("Simple tests") {
+        it("returning a scalar") {
+            """find { 1 + 2 }""".queryForScalar()
+                .shouldBe(3)
+        }
+    }
+})
+```
+
+
+## Compiling your Taxi project
+By default, the taxi project is compiled before any tests are run. If compilation fails, the tests are not executed.
+
+The Taxi project is found by reading the `taxi.conf` file in the root of your Taxi project.
+
+
+## Test helpers
+The OrbitalSpec base class provides a suite of query helper methods designed to make writing tests for Taxi/Orbital projects faster and more expressive.
+
+These helpers let you write and run TaxiQL queries directly within your tests and inspect the results in a Kotlin-native way.
+
+### Query helper methods
+All helper methods are defined as [Kotlin Extension functions](https://kotlinlang.org/docs/extensions.html) on the String class, which means you can write queries like this:
+
+```kotlin
+"find { 1 + 2 }".queryForScalar() // returns 3
+```
+This makes it easy to inline small queries directly in your test cases.
+
+#### `queryForScalar`
+
+`queryForScalar(): Any?`
+
+Executes the query and returns the first result as a raw scalar value (e.g., Int, String, Boolean).
+Use this for queries that return a single value, like a literal or a single field projection.
+
+```
+"find { 6 * 7 }".queryForScalar() shouldBe 42
+```
+
+#### `queryForObject`
+`queryForObject():Map<String,Any?>`
+
+Executes the query and returns the first result as a map.
+Each field in the result is represented as a key-value pair in the returned Map.
+
+Use this when your query returns an object or a record.
+
+```kotlin
+it("returns a map when using queryForObject") {
+    """given { Person = { id: 123, age: 12 } }
+        find { PossibleAdult }
+        """.queryForObject()
+        .shouldBe(
+            mapOf(
+                "id" to 123,
+                "age" to 12,
+                "isAdult" to false
+            )
+        )
+}
+```
+
+#### `queryForCollection`
+`queryForCollection():List<Map<String,Any?>>`
+
+Executes the query and returns a collection of objects, each represented as a `Map<String, Any?>`.
+
+Use this when your query returns a list or collection of values.
+
+```kotlin
+it("returns a list of maps when using queryForCollection") {
+        """
+        find { [ { name: 'Alice' }, { name: 'Bob' } ] }
+        """.queryForCollection()
+        .shouldBe(
+            listOf(
+                mapOf("name" to "Alice"),
+                mapOf("name" to "Bob")
+            )
+        )
+}
+```
+
+#### `queryForTypedInstance`
+`queryForTypedInstance():TypedInstance`
+
+This allows for deeper inspection, such as:
+
+ * Access to field-level types
+ * Provenance/lineage tracking
+ * Evaluation errors and unresolved values
+
+Useful in lower-level tests where you want to assert not just values, but typing behavior or error diagnostics.
+
+
+## Stubbing service calls
+Each query method supports stubbing external data sources in two ways:
+
+**1. Using Stub Scenarios (Recommended)**
+```kotlin
+it("should let me customize a stub return value") {
+    """
+    find { Person(PersonId == 1) } as PossibleAdult
+    """.queryForObject(
+        stub("getPerson").returns("""{ "id" : 123, "age" : 36 }""")
+    )
+        .shouldBe(mapOf(
+            "id" to 123,
+            "age" to 36,
+            "isAdult" to true
+        ))
+}
+```
+
+
+**2. Using Stub Customizer (Advanced)**
+
+```kotlin
+it("advanced stub customization") {
+    """find { Person(PersonId == 1) }""".queryForObject { stubService ->
+        // Fine-grained control over stub configuration
+        stub.addResponse("getPerson", """{ "id" : 123, "age" : 36 }""")
+    }
+}
+```
+
+The stub scenarios approach is more convenient for most use cases, while the stub customizer allows for things like
+ - controlling responses based on inputs
+ - streaming responses (for faking Kafka topics, etc)
+ - Throwing errors / simulating failures
+
+For more information, read the dedicated docs on [Stubbing responses](/stubbing)

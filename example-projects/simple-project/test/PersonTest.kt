@@ -1,8 +1,5 @@
 import com.orbitalhq.preflight.dsl.OrbitalSpec
-import com.orbitalhq.preflight.dsl.PreflightExtension
 import com.orbitalhq.preflight.dsl.stub
-import io.kotest.assertions.fail
-import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 
 class PersonTest : OrbitalSpec({

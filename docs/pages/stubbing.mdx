@@ -1,0 +1,303 @@
+---
+title: Stubbing responses
+---
+
+# Stubbing responses
+
+The `StubService` is a powerful testing utility that allows you to mock external service calls and dependencies in your Orbital/Taxi tests. It provides a flexible and intuitive API for configuring responses, tracking invocations, and testing complex scenarios without requiring actual external services.
+
+## Overview
+
+`StubService` enables you to:
+- **Mock external dependencies** - Replace real service calls with controlled responses
+- **Test error scenarios** - Simulate failures and edge cases
+- **Track invocations** - Verify that operations are called with expected parameters
+
+## Simple usage
+When all you need to do is provide a simple response to an operation call, you can use
+the convenience method:
+
+```kotlin
+it("should let me customize a stub return value") {
+    """
+    find { Person(PersonId == 1) } as PossibleAdult
+    """.queryForObject(
+        stub("getPerson").returns("""{ "id" : 123, "age" : 36 }"""),
+        stub("getAdulting").returns("""{ "isAdult" : true }""") // you can specify multiple stubbed responses
+    )
+        .shouldBe(mapOf(
+            "id" to 123,
+            "age" to 36,
+            "isAdult" to true
+        ))
+}
+```
+
+## Basic Usage Patterns
+
+### Simple JSON Responses
+
+The most common pattern is providing JSON-based responses:
+
+```kotlin
+it("should return user data") {
+    """find { Person(PersonId == 1) }""".queryForObject { stubService ->
+        stubService.addResponse("getPerson", """
+            {
+                "id": 123,
+                "name": "John Doe",
+                "email": "john@example.com",
+                "age": 30
+            }
+        """)
+    }
+}
+```
+
+### Array Responses
+
+For operations that return collections:
+
+```kotlin
+it("should return multiple users") {
+    """find { Person }""".queryForCollection { stubService ->
+        stubService.addResponse("getAllPersons", """
+            [
+                {"id": 1, "name": "Alice", "age": 25},
+                {"id": 2, "name": "Bob", "age": 35},
+                {"id": 3, "name": "Charlie", "age": 45}
+            ]
+        """)
+    }
+}
+```
+
+
+## Advanced Response Configuration
+
+### Parameter-Based Responses
+
+Configure different responses based on input parameters:
+
+```kotlin
+it("should return different users based on role") {
+    """find { Person(role == "admin") }""".queryForObject { stubService ->
+        stubService.addResponsesByParameter(
+            "getPersonByRole",
+            mapOf(
+                "admin" to """{"id": 1, "name": "Admin User", "permissions": ["ALL"]}""",
+                "user" to """{"id": 2, "name": "Regular User", "permissions": ["READ"]}""",
+                "guest" to """{"id": 3, "name": "Guest", "permissions": []}"""
+            )
+        )
+    }
+}
+```
+
+### Dynamic Response Logic
+
+For complex conditional logic:
+
+```kotlin
+it("should handle dynamic responses") {
+    """find { Order(status == "ACTIVE") }""".queryForCollection { stubService ->
+        stubService.addResponse("getOrdersByStatus") { operation, parameters ->
+            val status = parameters.first().second.value as String
+            when (status) {
+                "ACTIVE" -> listOf(
+                    activeOrder1.right(),
+                    activeOrder2.right()
+                )
+                "COMPLETED" -> listOf(completedOrder.right())
+                "CANCELLED" -> emptyList()
+                else -> throw IllegalArgumentException("Unknown status: $status")
+            }
+        }
+    }
+}
+```
+
+### Table-Based Operations
+
+Convenient method for table findMany operations:
+
+```kotlin
+it("should stub table operations") {
+    """find { User }""".queryForCollection { stubService ->
+        // Automatically configures "users_findManyUser" operation
+        stubService.addTableFindManyResponse("users", """
+            [
+                {"id": 1, "username": "alice", "active": true},
+                {"id": 2, "username": "bob", "active": false}
+            ]
+        """)
+    }
+}
+```
+
+## Data Source Tracking and Lineage
+
+Enable data source tracking to understand where data comes from in your queries by passing `modifyDataSource = true` in the query.
+
+Data lineage is available on the `dataSource` property of all `TypedInstance` objects. To access it, you must use the `queryForTypedInstance()` method:
+
+```kotlin
+it("should track data lineage") {
+    """find { Person(PersonId == 1) }""".queryForTypedInstace { stubService ->
+        stubService.addResponse(
+            "getPerson",
+            """{"id": 123, "name": "John"}""",
+            modifyDataSource = true  // Enables lineage tracking
+        )
+    }
+    // Results will include operation metadata for debugging and analysis
+}
+```
+
+## Error Testing
+
+### Simulating Service Failures
+
+Test how your code handles external service failures:
+
+```kotlin
+it("should handle service failures gracefully") {
+    assertThrows<RuntimeException> {
+        """find { Person(PersonId == 1) }""".queryForObject { stubService ->
+            stubService.addResponseThrowing(
+                "getPerson",
+                RuntimeException("Service temporarily unavailable")
+            )
+        }
+    }
+}
+
+it("should handle validation errors") {
+    """find { Person }""".queryForCollection { stubService ->
+        stubService.addResponseThrowing(
+            "createPerson",
+            IllegalArgumentException("Invalid email format")
+        )
+    }
+}
+```
+
+## Streaming and Flow Responses
+
+For operations that return streaming data:
+
+```kotlin
+it("should handle streaming responses") {
+    """find { PriceUpdate }""".queryForCollection { stubService ->
+        stubService.addResponseFlow("subscribeToPrices") { operation, parameters ->
+            flow {
+                repeat(3) { i ->
+                    val price = TypedInstance.from(
+                        priceType,
+                        mapOf("symbol" to "AAPL", "price" to (150.0 + i)),
+                        schema
+                    )
+                    emit(price.right())
+                    delay(100) // Simulate real-time updates
+                }
+            }
+        }
+    }
+}
+```
+
+## Invocation Tracking and Verification
+
+### Counting Operation Calls
+
+Verify that operations are called the expected number of times:
+
+```kotlin
+it("should track operation invocations") {
+    val result = """find { Person(PersonId == 1) }""".queryForObject { stubService ->
+        stubService.addResponse("getPerson", """{"id": 123, "name": "John"}""")
+    }
+
+    // Verify the operation was called exactly once
+    stubService.callCount("getPerson") shouldBe 1
+
+    // Verify other operations weren't called
+    stubService.callCount("deletePerson") shouldBe 0
+}
+```
+
+### Parameter Verification
+
+Check what parameters were passed to operations:
+
+```kotlin
+it("should verify operation parameters") {
+    """find { Person(PersonId == 123) }""".queryForObject { stubService ->
+        stubService.addResponse("getPerson", """{"id": 123, "name": "John"}""")
+    }
+
+    // Check the parameters that were passed
+    val invocations = stubService.invocations["getPerson"]!!
+    invocations.first().value shouldBe 123
+}
+```
+
+## Wildcard and Auto-Mock Responses
+
+For rapid prototyping or query plan generation, enable automatic responses:
+
+```kotlin
+it("should auto-generate responses for all operations") {
+    val (vyne, stubService) = StubService.stubbedVyne(schema)
+
+    // Enable automatic mock responses for ANY operation
+    stubService.returnStubValuesForAllOperations()
+
+    // Now any query will work without explicit configuration
+    val users = vyne.query("find { User }")
+    val products = vyne.query("find { Product where category == 'electronics' }")
+
+    // You can still override specific operations
+    stubService.addResponse("getSpecialUser", specificUserData)
+}
+```
+
+## Method Chaining and Fluent API
+
+StubService supports method chaining for clean test setup:
+
+```kotlin
+it("should support method chaining") {
+    """find { UserWithProfile }""".queryForObject { stubService ->
+        stubService
+            .addResponse("getUser", """{"id": 1, "name": "John"}""")
+            .addResponse("getUserProfile", """{"userId": 1, "bio": "Developer"}""")
+            .addResponse("getUserPreferences", """{"theme": "dark", "language": "en"}""")
+    }
+}
+```
+
+## Clean-up and State Management
+Each new test scenario in Preflight will create a clean stub service.
+
+However, if you need to clean state **within** a single test, you can use the `clearXxx` methods:
+
+### Clearing State within a test
+
+```kotlin
+it("should clean up between test cases") {
+    """find { Person }""".queryForCollection { stubService ->
+        // Clear all responses and invocation history
+        stubService.clearAll()
+
+        // Or clear just invocations (keeping responses)
+        stubService.clearInvocations()
+
+        // Or clear just responses (keeping invocation history)
+        stubService.clearHandlers()
+
+        stubService.addResponse("getAllPersons", personListJson)
+    }
+}
+```
+

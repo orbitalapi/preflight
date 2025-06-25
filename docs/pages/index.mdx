@@ -28,11 +28,20 @@ plugins {
 }
 ```
 
+You also need a `settings.gradle.kts` (but can be blank)
+
+```kotlin
+// settings.gradle.kts
+// This file can be left blank
+```
+
 Then, to write your first test, create a folder `test` next to your `src` folder.
 By convention, these are named ending in `Spec.kt` or `Test.kt`.
 
 ```kotlin
 // test/HelloWorldSpec.kt
+import com.orbitalhq.preflight.dsl.OrbitalSpec
+import io.kotest.matchers.shouldBe
 
 class HelloWorldSpec : OrbitalSpec({
     describe("First test") {
