@@ -26,7 +26,7 @@ tasks.register("publishAllMavenLocal") {
 
 allprojects {
     group = "com.orbitalhq.preflight"
-    version = "0.0.2"
+    version = "0.0.3"
 
     repositories {
         mavenCentral()
