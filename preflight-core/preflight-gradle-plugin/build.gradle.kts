@@ -54,7 +54,6 @@ tasks.shadowJar {
         include(project(":preflight-runtime"))
         include(dependency("org.taxilang:.*"))
         include(dependency("com.orbitalhq:.*"))
-        include(dependency("com.orbitalhq.preflight:.*"))
     }
 }
 
