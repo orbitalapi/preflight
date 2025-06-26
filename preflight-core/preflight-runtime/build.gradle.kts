@@ -18,6 +18,17 @@ dependencies {
         // Not published to maven central, and not needed for testing
         // as it relates to saml auth
         exclude(group = "org.pac4j")
+
+        // This might need adding (and shading), but later...
+        // Can we avoid by just using the OSS version in Preflight?
+        exclude(group = "org.jooq.pro")
+        exclude(group = "org.pac4j")
+    }
+    api("org.opentest4j:opentest4j:1.3.0")
+    api("com.orbitalhq:taxi-playground-core:$orbitalVersion") {
+        exclude(group = "io.confluent")
+        exclude(group = "org.jooq.pro")
+        exclude(group = "org.pac4j")
     }
     api("com.orbitalhq:taxiql-query-engine:$orbitalVersion") {
         artifact { classifier = "tests" }

@@ -44,5 +44,19 @@ class PersonTest : OrbitalSpec({
                 ))
         }
 
+
+        xit("should generate a playground link when a test fails") {
+            """
+            find { Person(PersonId == 1) } as PossibleAdult
+        """.queryForObject(
+                stub("getPerson").returns("""{ "id" : 123, "age" : 36 }""")
+            )
+                .shouldBe(mapOf(
+                    "id" to 123,
+                    "age" to 12, // This will intentionally fail
+                    "isAdult" to true
+                ))
+        }
+
     }
 })
