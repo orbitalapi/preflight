@@ -10,35 +10,94 @@ import com.orbitalhq.query.QueryResult
 import com.orbitalhq.rawObjects
 import com.orbitalhq.schemaServer.core.adaptors.taxi.TaxiSchemaSourcesAdaptor
 import com.orbitalhq.schemaServer.core.file.FileProjectSpec
+import com.orbitalhq.schemaServer.core.file.packages.FileSystemPackageLoader
 import com.orbitalhq.schemas.taxi.TaxiSchema
 import com.orbitalhq.stubbing.StubService
 import com.orbitalhq.testVyne
-import io.kotest.assertions.fail
-import io.kotest.assertions.withClue
-import io.kotest.core.listeners.BeforeSpecListener
-import io.kotest.core.spec.Spec
-import lang.taxi.CompilationException
-import lang.taxi.TaxiDocument
-import lang.taxi.packages.TaxiPackageLoader
-import lang.taxi.packages.TaxiPackageProject
-import java.nio.file.Path
-import java.nio.file.Paths
-import kotlin.io.path.absolute
-import com.orbitalhq.schemaServer.core.file.packages.FileSystemPackageLoader
 import com.orbitalhq.utils.files.ReactivePollingFileSystemMonitor
 import io.kotest.assertions.AssertionFailedError
+import io.kotest.assertions.fail
+import io.kotest.assertions.withClue
 import io.kotest.core.extensions.TestCaseExtension
 import io.kotest.core.listeners.AfterTestListener
+import io.kotest.core.listeners.BeforeSpecListener
+import io.kotest.core.spec.Spec
 import io.kotest.core.test.TestCase
 import io.kotest.core.test.TestResult
 import kotlinx.coroutines.withContext
+import lang.taxi.CompilationException
+import lang.taxi.TaxiDocument
+import lang.taxi.packages.TaxiPackageLoader
 import lang.taxi.query.TaxiQLQueryString
+import org.taxilang.packagemanager.DefaultDependencyFetcherProvider
+import org.taxilang.packagemanager.DependencyFetcherProvider
+import java.nio.file.Path
+import java.nio.file.Paths
 import java.time.Duration
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.coroutineContext
+import kotlin.io.path.absolute
 
-class PreflightExtension(val projectRoot: Path = Paths.get("./")) : BeforeSpecListener, AfterTestListener,
-    TestCaseExtension {
+sealed interface PreflightSourceConfig {
+    fun loadSchema(environmentVariables: Map<String,String> = emptyMap()): TaxiSchema
+}
+
+class FilePathSourceConfig(
+    private val projectRoot: Path = Paths.get("./"),
+    private val dependencyFetcherProvider: DependencyFetcherProvider = DefaultDependencyFetcherProvider
+) : PreflightSourceConfig {
+    override fun loadSchema(environmentVariables: Map<String, String>): TaxiSchema {
+        val loader = TaxiPackageLoader.forDirectoryContainingTaxiFile(projectRoot.absolute().normalize())
+        val taxiProject = loader.load()
+        val sourcePackage = loadSourcePackage(taxiProject.packageRootPath!!)
+
+        return withClue("Taxi project should compile without errors") {
+            val taxiSchema = try {
+                TaxiSchema.from(
+                    sourcePackage,
+                    environmentVariables = environmentVariables,
+                    onErrorBehaviour = TaxiSchema.Companion.TaxiSchemaErrorBehaviour.THROW_EXCEPTION
+                )
+            } catch (e: CompilationException) {
+                fail("Taxi project has errors: \n${e.message}")
+            }
+            taxiSchema
+        }
+    }
+
+    /**
+     * Loads a source path into a SourcePackage
+     * Uses the orbital approach of loading (using a FileSystemPackageLoader)
+     * rather than a simple TaxiPackageLoader, as we need to support transpilation of non-taxi sources
+     */
+    private fun loadSourcePackage(packageRootPath: Path): SourcePackage {
+        val spec = FileProjectSpec(path = packageRootPath)
+        val fileMonitor = ReactivePollingFileSystemMonitor(packageRootPath, Duration.ofHours(9999))
+        val converter = TaxiSchemaSourcesAdaptor(
+            dependencyFetcherProvider = dependencyFetcherProvider
+        )
+        val packageLoader = FileSystemPackageLoader(spec, converter, fileMonitor)
+        val packageMetadata = converter.buildMetadata(packageLoader)
+            .block()!!
+        val sourcePackage = converter.convert(packageMetadata, packageLoader).block()!!
+        return sourcePackage
+    }
+}
+
+class StringSourceConfig(private val source: String) : PreflightSourceConfig {
+    override fun loadSchema(environmentVariables: Map<String, String>): TaxiSchema {
+        return TaxiSchema.from(source, environmentVariables = environmentVariables)
+    }
+}
+
+fun forSchema(source: String) = StringSourceConfig(source)
+
+class PreflightExtension(private val sourceConfig: PreflightSourceConfig = FilePathSourceConfig(),
+    private val envVariableContainer: EnvVariableContainer = SpecEnvVariables.newInstance()
+    ) : BeforeSpecListener,
+    AfterTestListener,
+    TestCaseExtension,
+    EnvVariableContainer by envVariableContainer {
 
     companion object {
         val PreflightTestCaseKey = object : CoroutineContext.Key<PreflightTestCaseContext> {}
@@ -54,14 +113,7 @@ class PreflightExtension(val projectRoot: Path = Paths.get("./")) : BeforeSpecLi
     lateinit var schema: TaxiSchema
         private set
 
-    lateinit var sourcePackage: SourcePackage
-        private set
-
-    /**
-     * Provides access to the actual Taxi project (the equivalent of the
-     * taxi.conf file)
-     */
-    lateinit var taxiProject: TaxiPackageProject
+    private lateinit var sourcePackage: SourcePackage
         private set
 
     private val capturedScenarios = mutableMapOf<TestCase, CapturedQuery>()
@@ -71,10 +123,7 @@ class PreflightExtension(val projectRoot: Path = Paths.get("./")) : BeforeSpecLi
         envVariableContainer.markImmutable()
         withClue("Taxi project should compile without errors") {
             val taxiSchema = try {
-                TaxiSchema.from(
-                    sourcePackage,
-                    onErrorBehaviour = TaxiSchema.Companion.TaxiSchemaErrorBehaviour.THROW_EXCEPTION
-                )
+                sourceConfig.loadSchema(environmentVariables = envVariableContainer.envVariables)
             } catch (e: CompilationException) {
                 fail("Taxi project has errors: \n${e.message}")
             }
@@ -84,23 +133,8 @@ class PreflightExtension(val projectRoot: Path = Paths.get("./")) : BeforeSpecLi
         }
     }
 
-    /**
-     * Loads a source path into a SourcePackage
-     * Uses the orbital approach of loading (using a FileSystemPackageLoader)
-     * rather than a simple TaxiPackageLoader, as we need to support transpilation of non-taxi sources
-     */
-    private fun loadSourcePackage(packageRootPath: Path): SourcePackage {
-        val spec = FileProjectSpec(path = packageRootPath)
-        val fileMonitor = ReactivePollingFileSystemMonitor(packageRootPath, Duration.ofHours(9999))
-        val packageLoader = FileSystemPackageLoader(spec, TaxiSchemaSourcesAdaptor(), fileMonitor)
-        val converter = TaxiSchemaSourcesAdaptor()
-        val packageMetadata = converter.buildMetadata(packageLoader)
-            .block()!!
-        val sourcePackage = converter.convert(packageMetadata, packageLoader).block()!!
-        return sourcePackage
-    }
 
-    fun orbital(): Pair<Orbital, StubService> {
+    private fun orbital(): Pair<Orbital, StubService> {
         return testVyne(this.schema)
     }
 
@@ -148,7 +182,26 @@ class PreflightExtension(val projectRoot: Path = Paths.get("./")) : BeforeSpecLi
             .firstTypedInstace()
     }
 
-    suspend fun query(taxiQl: String, stubCustomizer: (StubService) -> Unit = {}): QueryResult {
+    suspend fun runNamedQueryForObject(queryName: String, stubCustomizer: (StubService) -> Unit = {}) =
+        runNamedQuery(queryName, stubCustomizer)
+            .firstTypedInstace()
+
+    suspend fun runNamedQueryForStream(queryName: String, stubCustomizer: (StubService) -> Unit = {}) =
+        runNamedQuery(queryName, stubCustomizer).results
+
+    private suspend fun runNamedQuery(queryName: String, stubCustomizer: (StubService) -> Unit = {}): QueryResult {
+        val (orbital) = orbital()
+        val savedQuery = orbital.schema.queries.singleOrNull {
+            it.name.parameterizedName == queryName || it.name.name == queryName
+        }
+        if (savedQuery == null) {
+            fail("No query named $queryName was found")
+        }
+        val taxiQl = savedQuery.sources.joinToString("\n") { it.content }
+        return query(taxiQl, stubCustomizer)
+    }
+
+    private suspend fun query(taxiQl: String, stubCustomizer: (StubService) -> Unit = {}): QueryResult {
         val (orbital, stub) = orbital()
         stubCustomizer(stub)
         val testContext = coroutineContext[PreflightTestCaseKey]
@@ -165,7 +218,7 @@ class PreflightExtension(val projectRoot: Path = Paths.get("./")) : BeforeSpecLi
         return withContext(context) {
             val testResult = execute(testCase)
             val capturedScenario = capturedScenarios[testCase]
-            if (testResult.isErrorOrFailure && capturedScenario != null) {
+            if (testResult.isFailure && capturedScenario != null) {
 
                 val failure = testResult as TestResult.Failure
                 val originalError = failure.cause as AssertionFailedError

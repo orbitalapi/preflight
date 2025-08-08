@@ -1,8 +1,11 @@
 package com.orbitalhq.preflight.dsl
 
+import com.orbitalhq.Vyne
+import com.orbitalhq.models.TypedInstance
 import com.orbitalhq.schemas.taxi.TaxiSchema
 import com.orbitalhq.stubbing.StubService
 import io.kotest.core.spec.style.DescribeSpec
+import kotlinx.coroutines.flow.Flow
 import lang.taxi.TaxiDocument
 import lang.taxi.packages.TaxiPackageProject
 
@@ -15,10 +18,10 @@ import lang.taxi.packages.TaxiPackageProject
  * 
  * @param body The test specification body that defines the test structure
  */
-abstract class OrbitalSpec(body: OrbitalSpec.() -> Unit) : DescribeSpec() {
+abstract class OrbitalSpec(body: OrbitalSpec.() -> Unit, sourceConfig: PreflightSourceConfig = FilePathSourceConfig(), ) : DescribeSpec() {
 
     @Suppress("MemberVisibilityCanBePrivate")
-    val preflight = PreflightExtension()
+    val preflight = PreflightExtension(sourceConfig)
 
     init {
         extension(preflight)
@@ -47,14 +50,11 @@ abstract class OrbitalSpec(body: OrbitalSpec.() -> Unit) : DescribeSpec() {
             return preflight.schema
         }
 
-    /**
-     * Provides access to the Taxi Package Project - taxi's taxi.conf file,
-     * and source roots etc.
-     */
-    val taxiProject: TaxiPackageProject
-        get() {
-            return preflight.taxiProject
-        }
+    suspend fun runNamedQueryForStream(queryName: String, stubCustomizer: (StubService) -> Unit = {}):Flow<TypedInstance> =
+        preflight.runNamedQueryForStream(queryName, stubCustomizer)
+    suspend fun runNamedQueryForObject(queryName: String, stubCustomizer: (StubService) -> Unit = {}) =
+        preflight.runNamedQueryForObject(queryName, stubCustomizer)
+
     /**
      * Executes the query, and returns a raw scalar value (Int, String, Boolean, etc).
      * Optionally accepts a callback for customizing the Stub service, which allows for

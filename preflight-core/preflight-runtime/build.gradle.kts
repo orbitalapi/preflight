@@ -3,8 +3,8 @@ plugins {
     `maven-publish`
 }
 
-val taxiVersion = "1.65.0"
-val orbitalVersion = "0.36.0-M4"
+val taxiVersion = "1.66.0-SNAPSHOT"
+val orbitalVersion = "0.36.0-M9"
 
 dependencies {
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
@@ -24,18 +24,25 @@ dependencies {
         exclude(group = "org.jooq.pro")
         exclude(group = "org.pac4j")
     }
+    api("com.orbitalhq:taxiql-query-engine:$orbitalVersion") {
+        artifact { classifier = "tests" }
+        // Not published to maven central, and not needed for testing
+        // as it relates to saml auth
+        exclude(group = "org.pac4j")
+
+        // This might need adding (and shading), but later...
+        // Can we avoid by just using the OSS version in Preflight?
+        exclude(group = "org.jooq.pro")
+        exclude(group = "org.pac4j")
+    }
     api("org.opentest4j:opentest4j:1.3.0")
     api("com.orbitalhq:taxi-playground-core:$orbitalVersion") {
         exclude(group = "io.confluent")
         exclude(group = "org.jooq.pro")
         exclude(group = "org.pac4j")
     }
-    api("com.orbitalhq:taxiql-query-engine:$orbitalVersion") {
-        artifact { classifier = "tests" }
-        // Not published to maven central, and not needed for testing
-        // as it relates to saml auth
-        exclude(group = "org.pac4j")
-    }
+
+    api("app.cash.turbine:turbine-jvm:0.12.1")
     implementation("com.orbitalhq:schema-server-core:$orbitalVersion") {
         // This could become an issue - but this isn't published to maven central
         // If we end up needing this, we'll need to configure
@@ -60,6 +67,7 @@ dependencies {
     implementation("io.kotest:kotest-framework-datatest")
     implementation("io.kotest:kotest-framework-discovery")
     implementation("io.kotest:kotest-assertions-core")
+    testImplementation("io.kotest:kotest-runner-junit5")
 
 
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
@@ -68,6 +76,7 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    systemProperty("kotest.framework.classpath.scanning.config.disable", "false")
 }
 
 publishing {

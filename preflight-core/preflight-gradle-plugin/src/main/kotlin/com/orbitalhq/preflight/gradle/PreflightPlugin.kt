@@ -33,6 +33,7 @@ class PreflightPlugin : Plugin<Project> {
         val mainSourceSet = sourceSets.getByName("main")
 
         val testSourceSet = sourceSets.maybeCreate("test")
+        testSourceSet.resources.srcDir("test-resources")
         testSourceSet.java.srcDir("test")  // top-level test directory
         testSourceSet.compileClasspath += mainSourceSet.output + mainSourceSet.compileClasspath
         testSourceSet.runtimeClasspath += mainSourceSet.output + mainSourceSet.runtimeClasspath
