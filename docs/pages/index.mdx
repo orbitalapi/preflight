@@ -35,6 +35,20 @@ You also need a `settings.gradle.kts` (but can be blank)
 // This file can be left blank
 ```
 
+Here's the directory structure:
+
+```
+├── src
+│   └── schema.taxi
+├── test
+│   └── SchemaSpec.kt
+└── test-resources (Optional)
+    └── env.conf (Optional)
+taxi.conf
+build.gradle.kts
+settings.gradle.kts (Often blank)
+```
+
 Then, to write your first test, create a folder `test` next to your `src` folder.
 By convention, these are named ending in `Spec.kt` or `Test.kt`.
 

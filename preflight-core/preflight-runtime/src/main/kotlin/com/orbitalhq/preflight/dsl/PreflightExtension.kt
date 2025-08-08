@@ -68,11 +68,7 @@ class PreflightExtension(val projectRoot: Path = Paths.get("./")) : BeforeSpecLi
 
 
     override suspend fun beforeSpec(spec: Spec) {
-        val loader = TaxiPackageLoader.forDirectoryContainingTaxiFile(projectRoot.absolute().normalize())
-        this.taxiProject = loader.load()
-
-        sourcePackage = loadSourcePackage(this.taxiProject.packageRootPath!!)
-
+        envVariableContainer.markImmutable()
         withClue("Taxi project should compile without errors") {
             val taxiSchema = try {
                 TaxiSchema.from(

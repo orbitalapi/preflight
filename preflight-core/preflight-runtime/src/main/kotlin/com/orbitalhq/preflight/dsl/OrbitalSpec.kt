@@ -25,6 +25,10 @@ abstract class OrbitalSpec(body: OrbitalSpec.() -> Unit) : DescribeSpec() {
         this.body()
     }
 
+    fun environmentVariables(vararg pairs: Pair<String, String>) = preflight.environmentVariables(*pairs)
+    fun environmentVariables(env: Map<String, String>) = preflight.environmentVariables(env)
+    fun env(key: String, value: String) = preflight.env(key,value)
+
     /**
      * Provides access to the compiled taxi document.
      * This is lower-level than Orbital's schema object

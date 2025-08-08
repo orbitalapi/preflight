@@ -1,0 +1,68 @@
+---
+title: Environment variables
+---
+import { Callout } from 'nextra/components'
+
+# Configuring environment variables
+
+Orbital supports using [environment variables inside annotations](https://orbitalhq.com/docs/deploying/configuring-orbital#environment-variables-in-annotations),
+which can lead to compilation errors if not provided.
+
+## Global config
+To use default, global config, simply drop an `env.conf` file in the `test-resources` directory:
+
+```
+/
+├── src
+│   └── schema.taxi
+├── test
+│   └── SchemaSpec.kt
+└── test-resources
+    └── env.conf <--- env.conf goes here
+taxi.conf
+```
+
+Orbital uses [HOCON](https://github.com/lightbend/config#examples-of-hocon) format for config files. You can read more about configuring Orbital [here](https://orbitalhq.com/docs/deploying/configuring-orbital)
+
+Here's a sample config file:
+
+```env.conf
+TransactionsTopicName = Transactions
+```
+
+Hocon is very flexible, you can use a variety of styles:
+ * `foo.bar=10`
+ * `foo : 10`
+ * `foo=10, bar=10`
+
+Read more in the [HOCON docs](https://github.com/lightbend/config?tab=readme-ov-file#examples-of-hocon)
+
+## Overriding environment variables per-spec
+
+Environment variables can be overridden within a spec by calling one of these functions:
+
+```kotlin
+    fun environmentVariables(vararg pairs: Pair<String, String>)
+    fun environmentVariables(env: Map<String, String>)
+    fun env(key: String, value: String)
+```
+
+<Callout>Environment variables are set per-spec, and must be set *before* the `describe()` block. Attempting to modify environment variables in a `describe` or `it( .. )` block will result in an error</Callout>
+
+```kotlin
+class OverridingGlobalEnvVariablesSpec : OrbitalSpec({
+    // Override a single env variable
+    env("click-events-topic-name", "clickstream")
+
+    // alternatively, override a bunch:
+    environmentVariables(
+        "MyTopic" to "Foo",
+        "AnotherTopic" to "Bar"
+    )
+    describe("overriding global env config variables") {
+        it("should compile using the overridden env variable") {
+            // test continues
+        }
+    }
+})
+```

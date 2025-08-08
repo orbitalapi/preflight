@@ -32,7 +32,7 @@ export default {
     docsRepositoryBase: 'https://github.com/orbitalapi/preflight/docs',
     footer: {
         content: (
-            <span>Built by &nbsp;<a className="underline" href="https://orbitalhq.com" target="_blank">Orbital</a>, to make demos suck less.</span>
+            <span>Built by &nbsp;<a className="underline" href="https://orbitalhq.com" target="_blank">Orbital</a>.</span>
         )
     },
     head: () => {
