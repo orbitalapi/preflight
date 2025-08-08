@@ -1,0 +1,32 @@
+import com.orbitalhq.kafka.KafkaService
+import com.orbitalhq.kafka.KafkaOperation
+import com.orbitalhq.mongo.MongoService
+import com.orbitalhq.mongo.UpsertOperation
+
+namespace com.foo
+
+model PersonClickedEvent {
+   id : PersonId inherits String
+}
+parameter model Person {
+    personId : PersonId
+}
+
+@KafkaService(connectionName = "fake-kafka")
+service PersonEventsKafkaService {
+    // Using an env variable for topic name, to validate that can work
+    @KafkaOperation(topic = "${click-events-topic-name}", offset = "latest")
+    stream clickEvents : Stream<PersonClickedEvent>
+}
+
+@MongoService( connection = "fake-mongo" )
+service PersonDb {
+    @UpsertOperation
+    write operation upsertPerson(Person):Person
+}
+
+
+query StreamPersonEventsToMongo {
+    stream { PersonClickedEvent }
+    call PersonDb::upsertPerson
+}
