@@ -26,7 +26,7 @@ tasks.register("publishAllMavenLocal") {
 
 allprojects {
     group = "com.orbitalhq.preflight"
-    version = "0.0.3"
+    version = "0.0.4"
 
     repositories {
         mavenCentral()
@@ -59,7 +59,7 @@ subprojects {
     }
     plugins.withId("org.jetbrains.kotlin.jvm") {
         extensions.configure<KotlinJvmProjectExtension>() {
-            jvmToolchain(17)
+            jvmToolchain(21)
         }
     }
 
