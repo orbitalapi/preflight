@@ -50,10 +50,10 @@ abstract class OrbitalSpec(body: OrbitalSpec.() -> Unit, sourceConfig: Preflight
             return preflight.schema
         }
 
-    suspend fun runNamedQueryForStream(queryName: String, stubCustomizer: (StubService) -> Unit = {}):Flow<TypedInstance> =
-        preflight.runNamedQueryForStream(queryName, stubCustomizer)
-    suspend fun runNamedQueryForObject(queryName: String, stubCustomizer: (StubService) -> Unit = {}) =
-        preflight.runNamedQueryForObject(queryName, stubCustomizer)
+    suspend fun runNamedQueryForStream(queryName: String, arguments: Map<String,Any?> = emptyMap(), stubCustomizer: (StubService) -> Unit = {}):Flow<TypedInstance> =
+        preflight.runNamedQueryForStream(queryName, arguments, stubCustomizer)
+    suspend fun runNamedQueryForObject(queryName: String, arguments: Map<String, Any?> = emptyMap(), stubCustomizer: (StubService) -> Unit = {}) =
+        preflight.runNamedQueryForObject(queryName, arguments, stubCustomizer)
 
     /**
      * Executes the query, and returns a raw scalar value (Int, String, Boolean, etc).

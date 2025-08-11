@@ -150,7 +150,7 @@ class PreflightExtension(private val sourceConfig: PreflightSourceConfig = FileP
         queryForScalar(taxiQl, stubScenariosToCustomizer(stubScenarios.toList()))
 
     suspend fun queryForScalar(taxiQl: String, stubCustomizer: (StubService) -> Unit = {}): Any? {
-        return query(taxiQl, stubCustomizer)
+        return query(taxiQl, emptyMap(), stubCustomizer)
             .firstRawValue()
     }
 
@@ -159,7 +159,7 @@ class PreflightExtension(private val sourceConfig: PreflightSourceConfig = FileP
         queryForObject(taxiQl, stubScenariosToCustomizer(stubScenarios.toList()))
 
     suspend fun queryForObject(taxiQl: String, stubCustomizer: (StubService) -> Unit = {}): Map<String, Any?> {
-        return query(taxiQl, stubCustomizer)
+        return query(taxiQl, emptyMap(),  stubCustomizer)
             .firstRawObject()
     }
 
@@ -170,26 +170,26 @@ class PreflightExtension(private val sourceConfig: PreflightSourceConfig = FileP
         taxiQl: String,
         stubCustomizer: (StubService) -> Unit = {}
     ): List<Map<String, Any?>> {
-        return query(taxiQl, stubCustomizer)
+        return query(taxiQl, emptyMap(),  stubCustomizer)
             .rawObjects()
     }
 
-    suspend fun queryForTypedInstance(taxiQl: String, vararg stubScenarios: StubScenario) =
+    suspend fun queryForTypedInstance(taxiQl: String,  vararg stubScenarios: StubScenario) =
         queryForTypedInstance(taxiQl, stubScenariosToCustomizer(stubScenarios.toList()))
 
-    suspend fun queryForTypedInstance(taxiQl: String, stubCustomizer: (StubService) -> Unit = {}): TypedInstance {
-        return query(taxiQl, stubCustomizer)
+    suspend fun queryForTypedInstance(taxiQl: String,  stubCustomizer: (StubService) -> Unit = {}): TypedInstance {
+        return query(taxiQl, emptyMap(), stubCustomizer)
             .firstTypedInstace()
     }
 
-    suspend fun runNamedQueryForObject(queryName: String, stubCustomizer: (StubService) -> Unit = {}) =
-        runNamedQuery(queryName, stubCustomizer)
+    suspend fun runNamedQueryForObject(queryName: String, arguments: Map<String,Any?> = emptyMap(), stubCustomizer: (StubService) -> Unit = {}) =
+        runNamedQuery(queryName, arguments, stubCustomizer)
             .firstTypedInstace()
 
-    suspend fun runNamedQueryForStream(queryName: String, stubCustomizer: (StubService) -> Unit = {}) =
-        runNamedQuery(queryName, stubCustomizer).results
+    suspend fun runNamedQueryForStream(queryName: String, arguments: Map<String, Any?> = emptyMap(),  stubCustomizer: (StubService) -> Unit = {}) =
+        runNamedQuery(queryName, arguments, stubCustomizer).results
 
-    private suspend fun runNamedQuery(queryName: String, stubCustomizer: (StubService) -> Unit = {}): QueryResult {
+    private suspend fun runNamedQuery(queryName: String, arguments: Map<String,Any?>, stubCustomizer: (StubService) -> Unit = {}): QueryResult {
         val (orbital) = orbital()
         val savedQuery = orbital.schema.queries.singleOrNull {
             it.name.parameterizedName == queryName || it.name.name == queryName
@@ -198,10 +198,10 @@ class PreflightExtension(private val sourceConfig: PreflightSourceConfig = FileP
             fail("No query named $queryName was found")
         }
         val taxiQl = savedQuery.sources.joinToString("\n") { it.content }
-        return query(taxiQl, stubCustomizer)
+        return query(taxiQl, arguments, stubCustomizer)
     }
 
-    private suspend fun query(taxiQl: String, stubCustomizer: (StubService) -> Unit = {}): QueryResult {
+    private suspend fun query(taxiQl: String, arguments: Map<String,Any?>, stubCustomizer: (StubService) -> Unit = {}): QueryResult {
         val (orbital, stub) = orbital()
         stubCustomizer(stub)
         val testContext = coroutineContext[PreflightTestCaseKey]
@@ -210,7 +210,7 @@ class PreflightExtension(private val sourceConfig: PreflightSourceConfig = FileP
         } else {
             println("A test is executing without a context - this shouldn't happen")
         }
-        return orbital.query(taxiQl)
+        return orbital.query(taxiQl, arguments = arguments)
     }
 
     override suspend fun intercept(testCase: TestCase, execute: suspend (TestCase) -> TestResult): TestResult {
