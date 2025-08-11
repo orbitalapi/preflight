@@ -30,6 +30,29 @@ plugins {
 }
 ```
 
+## Configuration
+
+### Orbital Version
+By default, Preflight uses Orbital version `0.36.0-M9`. You can configure which version of Orbital to test against using the `preflight` extension:
+
+```kotlin
+// build.gradle.kts - uses default Orbital version (0.36.0-M9)
+plugins {
+    id("com.orbitalhq.preflight")
+}
+
+// OR specify a custom Orbital version
+preflight {
+    orbitalVersion = "0.37.0"
+}
+```
+
+**Benefits of configurable versions:**
+- Test against different Orbital versions without changing plugin code
+- Taxi dependencies come transitively from Orbital, ensuring compatibility
+- Easy to upgrade/downgrade versions for testing
+- No dependency version conflicts
+
 ### On Taxi CLI vs Gradle
 We plan to provide full support for executing tests using the Taxi CLI, which will make Gradle optional for CI/CD purposes.
 

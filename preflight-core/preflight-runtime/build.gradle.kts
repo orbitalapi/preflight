@@ -10,11 +10,11 @@ dependencies {
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
 
-    api("org.taxilang:compiler:$taxiVersion")
-    api("org.taxilang:compiler:$taxiVersion") {
+    compileOnly("org.taxilang:compiler:$taxiVersion")
+    compileOnly("org.taxilang:compiler:$taxiVersion") {
         artifact { classifier = "tests" }
     }
-    api("com.orbitalhq:taxiql-query-engine:$orbitalVersion") {
+    compileOnly("com.orbitalhq:taxiql-query-engine:$orbitalVersion") {
         // Not published to maven central, and not needed for testing
         // as it relates to saml auth
         exclude(group = "org.pac4j")
@@ -24,7 +24,7 @@ dependencies {
         exclude(group = "org.jooq.pro")
         exclude(group = "org.pac4j")
     }
-    api("com.orbitalhq:taxiql-query-engine:$orbitalVersion") {
+    compileOnly("com.orbitalhq:taxiql-query-engine:$orbitalVersion") {
         artifact { classifier = "tests" }
         // Not published to maven central, and not needed for testing
         // as it relates to saml auth
@@ -36,14 +36,14 @@ dependencies {
         exclude(group = "org.pac4j")
     }
     api("org.opentest4j:opentest4j:1.3.0")
-    api("com.orbitalhq:taxi-playground-core:$orbitalVersion") {
+    compileOnly("com.orbitalhq:taxi-playground-core:$orbitalVersion") {
         exclude(group = "io.confluent")
         exclude(group = "org.jooq.pro")
         exclude(group = "org.pac4j")
     }
 
     api("app.cash.turbine:turbine-jvm:0.12.1")
-    implementation("com.orbitalhq:schema-server-core:$orbitalVersion") {
+    compileOnly("com.orbitalhq:schema-server-core:$orbitalVersion") {
         // This could become an issue - but this isn't published to maven central
         // If we end up needing this, we'll need to configure
         //  <repositories>

@@ -24,7 +24,7 @@ First, add a `build.gradle.kts` file in your Taxi project root (next to your `ta
 // build.gradle.kts
 plugins {
     kotlin("jvm") version "1.9.23"
-    id("com.orbitalhq.preflight") version "0.0.3" // Whatever the current latest version is
+    id("com.orbitalhq.preflight") version "0.0.4" // Whatever the current latest version is
 }
 ```
 
@@ -34,6 +34,23 @@ You also need a `settings.gradle.kts` (but can be blank)
 // settings.gradle.kts
 // This file can be left blank
 ```
+
+### Configuration (Optional)
+By default, Preflight uses Orbital version `0.36.0-M9`. You can configure which version of Orbital to test against:
+
+```kotlin
+// Use default Orbital version
+plugins {
+    id("com.orbitalhq.preflight") version "0.0.4"
+}
+
+// OR specify a custom Orbital version
+preflight {
+    orbitalVersion = "0.37.0"
+}
+```
+
+This ensures Taxi dependencies come transitively from Orbital, maintaining version compatibility.
 
 Here's the directory structure:
 
