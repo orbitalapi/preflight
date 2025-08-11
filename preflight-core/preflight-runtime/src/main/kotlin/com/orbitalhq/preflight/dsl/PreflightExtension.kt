@@ -6,14 +6,16 @@ import com.orbitalhq.firstRawValue
 import com.orbitalhq.firstTypedInstace
 import com.orbitalhq.models.TypedInstance
 import com.orbitalhq.preflight.dsl.PreflightExtension.Companion.PreflightTestCaseKey
+import com.orbitalhq.preflight.dsl.containers.ContainerSupport
 import com.orbitalhq.query.QueryResult
+import com.orbitalhq.query.connectors.OperationInvoker
 import com.orbitalhq.rawObjects
 import com.orbitalhq.schemaServer.core.adaptors.taxi.TaxiSchemaSourcesAdaptor
 import com.orbitalhq.schemaServer.core.file.FileProjectSpec
 import com.orbitalhq.schemaServer.core.file.packages.FileSystemPackageLoader
 import com.orbitalhq.schemas.taxi.TaxiSchema
 import com.orbitalhq.stubbing.StubService
-import com.orbitalhq.testVyne
+import com.orbitalhq.testVyneWithStub
 import com.orbitalhq.utils.files.ReactivePollingFileSystemMonitor
 import io.kotest.assertions.AssertionFailedError
 import io.kotest.assertions.fail
@@ -21,9 +23,12 @@ import io.kotest.assertions.withClue
 import io.kotest.core.extensions.TestCaseExtension
 import io.kotest.core.listeners.AfterTestListener
 import io.kotest.core.listeners.BeforeSpecListener
+import io.kotest.core.listeners.BeforeTestListener
 import io.kotest.core.spec.Spec
 import io.kotest.core.test.TestCase
 import io.kotest.core.test.TestResult
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import lang.taxi.CompilationException
 import lang.taxi.TaxiDocument
@@ -39,7 +44,7 @@ import kotlin.coroutines.coroutineContext
 import kotlin.io.path.absolute
 
 sealed interface PreflightSourceConfig {
-    fun loadSchema(environmentVariables: Map<String,String> = emptyMap()): TaxiSchema
+    fun loadSchema(environmentVariables: Map<String, String> = emptyMap()): TaxiSchema
 }
 
 class FilePathSourceConfig(
@@ -92,9 +97,11 @@ class StringSourceConfig(private val source: String) : PreflightSourceConfig {
 
 fun forSchema(source: String) = StringSourceConfig(source)
 
-class PreflightExtension(private val sourceConfig: PreflightSourceConfig = FilePathSourceConfig(),
+class PreflightExtension(
+    private val sourceConfig: PreflightSourceConfig = FilePathSourceConfig(),
     private val envVariableContainer: EnvVariableContainer = SpecEnvVariables.newInstance()
-    ) : BeforeSpecListener,
+) : BeforeSpecListener,
+    BeforeTestListener,
     AfterTestListener,
     TestCaseExtension,
     EnvVariableContainer by envVariableContainer {
@@ -102,6 +109,24 @@ class PreflightExtension(private val sourceConfig: PreflightSourceConfig = FileP
     companion object {
         val PreflightTestCaseKey = object : CoroutineContext.Key<PreflightTestCaseContext> {}
     }
+
+
+    val containerRegistrations = mutableListOf<ContainerSupport>()
+
+    fun addContainerRegistration(registration: ContainerSupport) {
+        containerRegistrations.add(registration)
+    }
+
+    inline fun <reified T>  containerForConnection(connectionName: String):T {
+        val containerSupport = this.containerRegistrations.firstOrNull { it.connectionName == connectionName }
+            ?: error("No container with connectionName $connectionName is registered")
+        return containerSupport as T
+    }
+
+    private var invokersCreated = false
+    var invokers: List<OperationInvoker> = emptyList()
+        private set
+
 
     /**
      * Provides access to the compiled taxi document.
@@ -133,9 +158,23 @@ class PreflightExtension(private val sourceConfig: PreflightSourceConfig = FileP
         }
     }
 
+    private fun buildInvokersOnce() {
+        if (invokersCreated) return
+        if (!::schema.isInitialized) error("A startup sequencing issue occurred - cannot call buildInvokers before the schema has been provided")
+
+        this.containerRegistrations.forEach {
+            it.container.start()
+        }
+        this.invokers = this.containerRegistrations.map {
+            it.invokerFactory(this.schema)
+        }
+        this.invokersCreated = true
+    }
+
 
     private fun orbital(): Pair<Orbital, StubService> {
-        return testVyne(this.schema)
+        buildInvokersOnce()
+        return testVyneWithStub(this.schema, this.invokers)
     }
 
     private fun stubScenariosToCustomizer(scenarios: List<StubScenario>): (StubService) -> Unit {
@@ -159,7 +198,7 @@ class PreflightExtension(private val sourceConfig: PreflightSourceConfig = FileP
         queryForObject(taxiQl, stubScenariosToCustomizer(stubScenarios.toList()))
 
     suspend fun queryForObject(taxiQl: String, stubCustomizer: (StubService) -> Unit = {}): Map<String, Any?> {
-        return query(taxiQl, emptyMap(),  stubCustomizer)
+        return query(taxiQl, emptyMap(), stubCustomizer)
             .firstRawObject()
     }
 
@@ -170,26 +209,56 @@ class PreflightExtension(private val sourceConfig: PreflightSourceConfig = FileP
         taxiQl: String,
         stubCustomizer: (StubService) -> Unit = {}
     ): List<Map<String, Any?>> {
-        return query(taxiQl, emptyMap(),  stubCustomizer)
+        return query(taxiQl, emptyMap(), stubCustomizer)
             .rawObjects()
     }
 
-    suspend fun queryForTypedInstance(taxiQl: String,  vararg stubScenarios: StubScenario) =
+    suspend fun queryForTypedInstance(taxiQl: String, vararg stubScenarios: StubScenario) =
         queryForTypedInstance(taxiQl, stubScenariosToCustomizer(stubScenarios.toList()))
 
-    suspend fun queryForTypedInstance(taxiQl: String,  stubCustomizer: (StubService) -> Unit = {}): TypedInstance {
+    suspend fun queryForTypedInstance(taxiQl: String, stubCustomizer: (StubService) -> Unit = {}): TypedInstance {
         return query(taxiQl, emptyMap(), stubCustomizer)
             .firstTypedInstace()
     }
 
-    suspend fun runNamedQueryForObject(queryName: String, arguments: Map<String,Any?> = emptyMap(), stubCustomizer: (StubService) -> Unit = {}) =
-        runNamedQuery(queryName, arguments, stubCustomizer)
+
+    suspend fun runNamedQueryForObject(
+        queryName: String,
+        arguments: Map<String, Any?> = emptyMap(),
+        stubCustomizer: (StubService) -> Unit = {}
+    ): TypedInstance {
+        return runNamedQuery(queryName, arguments, stubCustomizer)
             .firstTypedInstace()
+    }
 
-    suspend fun runNamedQueryForStream(queryName: String, arguments: Map<String, Any?> = emptyMap(),  stubCustomizer: (StubService) -> Unit = {}) =
-        runNamedQuery(queryName, arguments, stubCustomizer).results
+    suspend fun runNamedQueryForStream(
+        queryName: String,
+        arguments: Map<String, Any?> = emptyMap(),
+        stubCustomizer: (StubService) -> Unit = {}
+    ): Flow<TypedInstance> {
+        return runNamedQuery(queryName, arguments, stubCustomizer).results
+    }
 
-    private suspend fun runNamedQuery(queryName: String, arguments: Map<String,Any?>, stubCustomizer: (StubService) -> Unit = {}): QueryResult {
+    suspend fun queryForStreamOfTypedInstances(
+        taxiQl: String,
+        stubCustomizer: (StubService) -> Unit = {}
+    ): Flow<TypedInstance> {
+        return query(taxiQl, emptyMap(), stubCustomizer).results
+
+    }
+    suspend fun queryForStreamOfObjects(
+        taxiQl: String,
+        stubCustomizer: (StubService) -> Unit = {}
+    ):Flow<Map<String,Any>> {
+        return query(taxiQl, emptyMap(), stubCustomizer).results
+            .map { it.toRawObject() as Map<String,Any> }
+
+    }
+    private suspend fun runNamedQuery(
+        queryName: String,
+        arguments: Map<String, Any?>,
+        stubCustomizer: (StubService) -> Unit = {}
+    ): QueryResult {
         val (orbital) = orbital()
         val savedQuery = orbital.schema.queries.singleOrNull {
             it.name.parameterizedName == queryName || it.name.name == queryName
@@ -201,7 +270,11 @@ class PreflightExtension(private val sourceConfig: PreflightSourceConfig = FileP
         return query(taxiQl, arguments, stubCustomizer)
     }
 
-    private suspend fun query(taxiQl: String, arguments: Map<String,Any?>, stubCustomizer: (StubService) -> Unit = {}): QueryResult {
+    private suspend fun query(
+        taxiQl: String,
+        arguments: Map<String, Any?>,
+        stubCustomizer: (StubService) -> Unit = {}
+    ): QueryResult {
         val (orbital, stub) = orbital()
         stubCustomizer(stub)
         val testContext = coroutineContext[PreflightTestCaseKey]
@@ -219,29 +292,34 @@ class PreflightExtension(private val sourceConfig: PreflightSourceConfig = FileP
             val testResult = execute(testCase)
             val capturedScenario = capturedScenarios[testCase]
             if (testResult.isFailure && capturedScenario != null) {
-
                 val failure = testResult as TestResult.Failure
-                val originalError = failure.cause as AssertionFailedError
-                val (_, playgroundLink) = PlaygroundScenarioFactory.buildPlaygroundScenario(
-                    capturedScenario,
-                    sourcePackage,
-                    schema,
-                    originalError,
-                    testCase
-                )
-                val errorMessageWithPlaygroundLink = """${originalError.message}
+                val cause = failure.cause
+                if (cause is AssertionFailedError) {
+                    val originalError = failure.cause as AssertionFailedError
+                    val (_, playgroundLink) = PlaygroundScenarioFactory.buildPlaygroundScenario(
+                        capturedScenario,
+                        sourcePackage,
+                        schema,
+                        originalError,
+                        testCase
+                    )
+                    val errorMessageWithPlaygroundLink = """${originalError.message}
                         |
                         |This error is explorable in Taxi Playground at the following link: $playgroundLink
                     """.trimMargin()
-                val failureWithPlaygroundLink = failure.copy(
-                    cause = AssertionFailedError(
-                        message = errorMessageWithPlaygroundLink,
-                        cause = originalError.cause,
-                        expectedValue = originalError.expectedValue,
-                        actualValue = originalError.actualValue,
+                    val failureWithPlaygroundLink = failure.copy(
+                        cause = AssertionFailedError(
+                            message = errorMessageWithPlaygroundLink,
+                            cause = originalError.cause,
+                            expectedValue = originalError.expectedValue,
+                            actualValue = originalError.actualValue,
+                        )
                     )
-                )
-                failureWithPlaygroundLink
+                    failureWithPlaygroundLink
+                } else {
+                    testResult
+                }
+
             } else {
                 testResult
             }

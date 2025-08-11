@@ -1,13 +1,12 @@
 package com.orbitalhq.preflight.dsl
 
-import com.orbitalhq.Vyne
 import com.orbitalhq.models.TypedInstance
+import com.orbitalhq.preflight.dsl.containers.ContainerSupport
 import com.orbitalhq.schemas.taxi.TaxiSchema
 import com.orbitalhq.stubbing.StubService
 import io.kotest.core.spec.style.DescribeSpec
 import kotlinx.coroutines.flow.Flow
 import lang.taxi.TaxiDocument
-import lang.taxi.packages.TaxiPackageProject
 
 /**
  * Base class for writing Orbital tests using Preflight.
@@ -23,9 +22,27 @@ abstract class OrbitalSpec(body: OrbitalSpec.() -> Unit, sourceConfig: Preflight
     @Suppress("MemberVisibilityCanBePrivate")
     val preflight = PreflightExtension(sourceConfig)
 
+    private val containerRegistrations = mutableListOf<ContainerSupport>()
+
     init {
         extension(preflight)
         this.body()
+
+        this.containerRegistrations.forEach { containerDef ->
+            extension(containerDef.containerExtension)
+            this.preflight.addContainerRegistration(containerDef)
+        }
+    }
+
+    inline fun <reified T> containerForConnection(connectionName: String): T {
+        return preflight.containerForConnection(connectionName)
+    }
+
+    fun withContainer(containerDefinition: ContainerSupport) {
+        containerRegistrations.add(containerDefinition)
+    }
+    fun withContainers(vararg containerDefinition: ContainerSupport) {
+        containerDefinition.forEach { withContainer(it) }
     }
 
     fun environmentVariables(vararg pairs: Pair<String, String>) = preflight.environmentVariables(*pairs)
@@ -50,6 +67,12 @@ abstract class OrbitalSpec(body: OrbitalSpec.() -> Unit, sourceConfig: Preflight
             return preflight.schema
         }
 
+    suspend fun queryForStreamOfObjects(query: String, stubCustomizer: (StubService) -> Unit = {}): Flow<Map<String, Any>> {
+        return preflight.queryForStreamOfObjects(query, stubCustomizer)
+    }
+    suspend fun queryForStreamOfTypedInstances(query: String, stubCustomizer: (StubService) -> Unit = {}): Flow<TypedInstance> {
+        return preflight.queryForStreamOfTypedInstances(query, stubCustomizer)
+    }
     suspend fun runNamedQueryForStream(queryName: String, arguments: Map<String,Any?> = emptyMap(), stubCustomizer: (StubService) -> Unit = {}):Flow<TypedInstance> =
         preflight.runNamedQueryForStream(queryName, arguments, stubCustomizer)
     suspend fun runNamedQueryForObject(queryName: String, arguments: Map<String, Any?> = emptyMap(), stubCustomizer: (StubService) -> Unit = {}) =

@@ -1,0 +1,13 @@
+
+import com.orbitalhq.kafka.KafkaService
+import com.orbitalhq.kafka.KafkaOperation
+
+model StockQuote {
+    ticker : Ticker inherits String
+}
+
+@KafkaService( connectionName = "quotes-kafka" )
+service StockKafka {
+    @KafkaOperation( topic = "stockPrices", offset = "earliest" )
+    stream quotes : Stream<StockQuote>
+}

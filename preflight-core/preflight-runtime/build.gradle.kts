@@ -4,16 +4,25 @@ plugins {
 }
 
 val taxiVersion = "1.66.0-SNAPSHOT"
-val orbitalVersion = "0.36.0-M9"
+val orbitalVersion = "0.36.0-M9" // Default version, can be overridden in consumer projects
 
 dependencies {
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
+    implementation(platform("org.testcontainers:testcontainers-bom:1.19.3"))
 
     compileOnly("org.taxilang:compiler:$taxiVersion")
     compileOnly("org.taxilang:compiler:$taxiVersion") {
         artifact { classifier = "tests" }
     }
+
+    // Containers / Invokers support
+    compileOnly("com.orbitalhq:kafka-connector:$orbitalVersion") {
+        // Drop all Confluent-specific artifacts
+        exclude(group = "io.confluent")
+    }
+    compileOnly("org.testcontainers:kafka")
+
     compileOnly("com.orbitalhq:taxiql-query-engine:$orbitalVersion") {
         // Not published to maven central, and not needed for testing
         // as it relates to saml auth
@@ -67,6 +76,8 @@ dependencies {
     implementation("io.kotest:kotest-framework-datatest")
     implementation("io.kotest:kotest-framework-discovery")
     implementation("io.kotest:kotest-assertions-core")
+    implementation("io.kotest.extensions:kotest-extensions-testcontainers:2.0.2")
+
     testImplementation("io.kotest:kotest-runner-junit5")
 
 
@@ -102,6 +113,17 @@ publishing {
                 accessKey = providers.environmentVariable("AWS_ACCESS_KEY_ID").orNull
                 secretKey = providers.environmentVariable("AWS_SECRET_ACCESS_KEY").orNull
             }
+        }
+    }
+}
+
+
+// Force any request for kafka-clients to resolve to the Apache build
+configurations.all {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "org.apache.kafka" && requested.name == "kafka-clients") {
+            useVersion("3.9.1")
+            because("Avoid Confluent's -ccs build, use Apache Kafka client instead")
         }
     }
 }

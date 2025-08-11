@@ -1,9 +1,15 @@
+import com.orbitalhq.preflight.gradle.ConnectorSupport
 import java.net.URI
 
 
 plugins {
     id("com.orbitalhq.preflight")
 }
+
+preflight {
+    connectors = listOf(ConnectorSupport.Kafka,)
+}
+
 repositories {
     mavenCentral()
     mavenLocal()

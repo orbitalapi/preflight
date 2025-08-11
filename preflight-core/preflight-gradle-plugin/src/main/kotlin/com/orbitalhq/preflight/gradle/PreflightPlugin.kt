@@ -1,15 +1,18 @@
 package com.orbitalhq.preflight.gradle
 
+import com.orbitalhq.preflight.Versions
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.artifacts.ModuleDependency
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.testing.Test
-import org.gradle.api.artifacts.ModuleDependency
 import java.net.URI
-import com.orbitalhq.preflight.Versions
+
+typealias OrbitalVersion = String
 
 open class PreflightExtension {
-    var orbitalVersion: String = "0.36.0-M9"  // current default
+    var orbitalVersion: OrbitalVersion = "0.36.0-M9"  // current default
+    var connectors: List<ConnectorSupport> = emptyList()
 }
 
 class PreflightPlugin : Plugin<Project> {
@@ -59,7 +62,8 @@ class PreflightPlugin : Plugin<Project> {
         // Move dependency declarations to afterEvaluate block to access extension values
         project.afterEvaluate {
             val orbitalVersion = extension.orbitalVersion
-            
+
+
             // Core dependencies
             project.dependencies.add("implementation", "org.jetbrains.kotlin:kotlin-stdlib")
             project.dependencies.add("implementation", "com.orbitalhq.preflight:preflight-runtime:${Versions.PREFLIGHT_VERSION}")
@@ -91,6 +95,14 @@ class PreflightPlugin : Plugin<Project> {
             
             project.dependencies.add("implementation", "org.opentest4j:opentest4j:1.3.0")
             project.dependencies.add("implementation", "app.cash.turbine:turbine-jvm:0.12.1")
+
+
+            // add in any container support
+            project.dependencies.add("implementation", project.dependencies.platform("org.testcontainers:testcontainers-bom:1.19.3"))
+
+            extension.connectors.forEach { connector ->
+                connector.configureBuild(orbitalVersion,project)
+            }
         }
     }
 }
