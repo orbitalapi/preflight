@@ -1,0 +1,107 @@
+---
+title: Changelog
+---
+
+# Changelog
+
+All notable changes to Preflight will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.0.4] - 2025-08-14
+
+### ✨ Added
+- **MongoDB Container Support**: Full integration testing support for MongoDB databases
+  - New `ConnectorSupport.MongoDB` connector type
+  - `mongoConnector()` helper for easy container setup
+  - `MongoContainerSupport` API with direct MongoDB client access
+  - Automatic database initialization with test credentials
+- **Multiple Connector Support**: Use multiple container types in the same test spec
+  - Configure both Kafka and MongoDB connectors simultaneously
+  - Isolated container instances per connection name
+- **Direct Orbital API Access**: Access underlying Orbital instance via `orbital()` method
+  - Full access to compiled schema metadata
+  - Custom query execution with parameters and context
+  - Advanced operation testing and debugging capabilities
+- **Named Query Arguments**: Pass arguments to named queries in tests
+  - Enhanced `runNamedQueryForObject()` method with argument support
+  - Better integration with parameterized Taxi queries
+- **Mixed Source Transpilation**: Automatic support for multiple schema formats
+  - Transparent handling of Avro (`.avsc`) files
+  - OpenAPI specification (`.yaml`, `.json`) support
+  - Unified compilation process for mixed-format projects
+
+### 🔧 Enhanced  
+- **Configurable Orbital Version**: Customize which Orbital version to test against
+  - Set `orbitalVersion` in preflight extension
+  - Support for both release and milestone versions (e.g., "0.37.0-M1")
+  - Improved dependency management and version compatibility
+- **Integration Testing Documentation**: Comprehensive guides and examples
+  - Complete MongoDB container usage examples
+  - Multi-connector configuration patterns
+  - Advanced container interaction APIs
+
+### 🏗️ Infrastructure
+- **JVM 21 Support**: Updated to Java 21 as the target JVM version
+- **Enhanced Build System**: Improved dependency loading and transpilation
+- **Environment Variable Support**: Better handling of test configuration
+- **Documentation Site**: Expanded documentation with new features and examples
+
+### 📝 Documentation
+- Added comprehensive MongoDB container integration guide
+- Enhanced getting started guide with configuration options
+- Direct Orbital API access documentation with examples
+- Mixed source format support documentation
+- Updated integration testing examples
+
+## [0.0.3] - Previous Release
+
+### Added
+- Core Preflight runtime and Gradle plugin
+- Basic Kotest integration with `OrbitalSpec`
+- Kafka container support for integration testing
+- Stubbing capabilities with `StubService`
+- Environment variable configuration support
+- Basic documentation site
+
+### Fixed
+- Gradle plugin configuration issues
+- Maven publishing improvements
+- Version handling and dependency resolution
+
+---
+
+## Version Support Matrix
+
+| Preflight Version | Orbital Version (Default) | Java Version | Kotlin Version |
+|------------------|---------------------------|--------------|----------------|
+| 0.0.4            | 0.36.0-M9                | 21           | 1.9.23         |
+| 0.0.3            | 0.36.0-M9                | 17           | 1.9.23         |
+| 0.0.2            | 0.36.0-M9                | 17           | 1.9.23         |
+
+---
+
+## Migration Guides
+
+### Upgrading to 0.0.4
+
+#### Java Version Requirement
+- **Action Required**: Update to Java 21 (previously Java 17)
+- Update your `JAVA_HOME` and build configuration
+- Use Java 21-compatible toolchains in your Gradle builds
+
+#### New MongoDB Support
+- No breaking changes for existing Kafka-based tests
+- Add `ConnectorSupport.MongoDB` to your connector list if using MongoDB
+- Refer to the [integration testing guide](./integration-testing) for setup examples
+
+#### Enhanced Configuration Options
+- The `preflight` extension now supports `orbitalVersion` configuration
+- Existing configurations continue to work without changes
+- Consider specifying an explicit Orbital version for reproducible builds
+
+### Upgrading from 0.0.2 to 0.0.3
+- Updated Gradle plugin registration
+- Improved Maven repository configuration
+- No breaking API changes

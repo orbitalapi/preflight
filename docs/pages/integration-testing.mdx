@@ -25,11 +25,14 @@ plugins {
 }
 
 preflight {
-    connectors = listOf(ConnectorSupport.Kafka)
+    connectors = listOf(
+        ConnectorSupport.Kafka,
+        ConnectorSupport.MongoDB
+    )
 }
 ```
 
-This automatically adds the necessary TestContainers dependencies and Orbital connector libraries.
+This automatically adds the necessary TestContainers dependencies and Orbital connector libraries for each connector type.
 
 ### 2. Define Your Taxi Schema
 
@@ -151,6 +154,154 @@ queryForStreamOfObjects("stream { MyModel }").test {
 }
 ```
 
+## MongoDB Container Support
+
+### Configuration
+
+The MongoDB connector provides a pre-configured MongoDB container with automatic database initialization:
+
+```kotlin
+mongoConnector(
+    connectionName = "user-db"  // Must match connectionName in Taxi schema
+)
+```
+
+### Database Schema Setup
+
+Define Taxi services that connect to MongoDB:
+
+```kotlin
+// src/user-management.taxi
+import com.orbitalhq.mongodb.MongoService
+import com.orbitalhq.mongodb.MongoOperation
+
+model User {
+    id : UserId inherits String
+    name : UserName inherits String
+    email : EmailAddress inherits String
+    age : Age inherits Int
+}
+
+@MongoService(connectionName = "user-db")
+service UserDatabase {
+    @MongoOperation(
+        database = "user_management",
+        collection = "users"
+    )
+    operation findUser(UserId) : User
+
+    @MongoOperation(
+        database = "user_management", 
+        collection = "users"
+    )
+    operation findAllUsers() : User[]
+}
+```
+
+### Container Tests with MongoDB
+
+Create test specs that use MongoDB containers:
+
+```kotlin
+// test/MongoIntegrationSpec.kt
+import com.orbitalhq.preflight.dsl.OrbitalSpec
+import com.orbitalhq.preflight.dsl.containers.mongo.MongoContainerSupport
+import com.orbitalhq.preflight.dsl.containers.mongo.mongoConnector
+import io.kotest.matchers.shouldBe
+import org.bson.Document
+
+class MongoIntegrationSpec : OrbitalSpec({
+    // Declare MongoDB container needed for tests
+    withContainers(
+        mongoConnector("user-db")
+    )
+    
+    describe("MongoDB integration tests") {
+        it("should find users from MongoDB") {
+            val mongoContainer = containerForConnection<MongoContainerSupport>("user-db")
+            
+            // Insert test data directly using MongoDB client
+            val client = mongoContainer.mongoClient()
+            val database = client.getDatabase("user_management")
+            val collection = database.getCollection("users")
+            
+            val testUser = Document("id", "user123")
+                .append("name", "John Doe")
+                .append("email", "john@example.com")
+                .append("age", 30)
+            
+            collection.insertOne(testUser).toFuture().join()
+            
+            // Now test your Taxi query
+            val result = """
+                find { User(UserId == "user123") }
+            """.queryForObject()
+            
+            result.shouldBe(mapOf(
+                "id" to "user123",
+                "name" to "John Doe",
+                "email" to "john@example.com",
+                "age" to 30
+            ))
+        }
+        
+        it("should find all users from collection") {
+            val mongoContainer = containerForConnection<MongoContainerSupport>("user-db")
+            val client = mongoContainer.mongoClient()
+            val collection = client.getDatabase("user_management")
+                .getCollection("users")
+            
+            // Insert multiple test users
+            val users = listOf(
+                Document("id", "user1").append("name", "Alice").append("age", 25),
+                Document("id", "user2").append("name", "Bob").append("age", 35)
+            )
+            collection.insertMany(users).toFuture().join()
+            
+            val results = """
+                find { User }
+            """.queryForCollection()
+            
+            results.size shouldBe 2
+            results[0]["name"] shouldBe "Alice"
+            results[1]["name"] shouldBe "Bob"
+        }
+    }
+})
+```
+
+### Container Interaction API
+
+Once MongoDB containers are running, access them through the `containerForConnection` method:
+
+```kotlin
+val mongoContainer = containerForConnection<MongoContainerSupport>("user-db")
+
+// Get direct access to MongoDB client for test data setup
+val client = mongoContainer.mongoClient()
+val database = client.getDatabase("your_database")
+val collection = database.getCollection("your_collection")
+
+// Insert test documents
+val document = Document("field", "value")
+collection.insertOne(document).toFuture().join()
+
+// Query documents for verification
+val results = collection.find().toFuture().join()
+```
+
+### Database Initialization
+
+MongoDB containers are automatically initialized with:
+- Default database: `user_management`
+- Test credentials: `test_container:test_container`
+- Custom initialization script support via `init-schema.js`
+
+The container uses the connection string format:
+```
+mongodb://test_container:test_container@host:port/user_management
+```
+
 ## Container Lifecycle
 
 Containers are managed automatically by Preflight:
@@ -229,6 +380,12 @@ Currently supported container types:
 - **Container**: Confluent Platform Kafka
 - **Features**: Topic creation, message production, consumer groups
 - **API**: `KafkaContainerSupport` with `sendMessage()` methods
+
+### MongoDB
+- **Usage**: `ConnectorSupport.MongoDB`
+- **Container**: MongoDB 6.0.7
+- **Features**: Document operations, collections, database initialization
+- **API**: `MongoContainerSupport` with direct MongoDB client access
 
 ### Future Connectors
 Additional connectors are planned:

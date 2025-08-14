@@ -36,6 +36,8 @@ You also need a `settings.gradle.kts` (but can be blank)
 ```
 
 ### Configuration (Optional)
+
+#### Orbital Version Configuration
 By default, Preflight uses Orbital version `0.36.0-M9`. You can configure which version of Orbital to test against:
 
 ```kotlin
@@ -50,7 +52,37 @@ preflight {
 }
 ```
 
-This ensures Taxi dependencies come transitively from Orbital, maintaining version compatibility.
+This configuration:
+- Ensures Taxi dependencies come transitively from Orbital, maintaining version compatibility
+- Enables automatic transpilation of Avro and other supported source formats
+- Allows testing against different Orbital API versions
+- Supports both release versions and milestone builds (e.g., "0.37.0-M1")
+
+#### Mixed Source Support
+Preflight automatically handles projects with mixed source types. Your project can contain:
+- **Taxi schemas** (`.taxi` files)
+- **Avro schemas** (`.avsc` files)
+- **OpenAPI specifications** (`.yaml`, `.json` files)
+
+All source formats are automatically transpiled to Taxi during compilation, allowing you to write unified tests regardless of your schema source format:
+
+```
+├── src
+│   ├── taxi-schemas/
+│   │   └── user.taxi
+│   ├── avro-schemas/
+│   │   └── events.avsc
+│   └── openapi-specs/
+│       └── api.yaml
+├── test
+│   └── MixedSourcesSpec.kt
+```
+
+The transpilation process:
+1. Detects all supported source formats in your project
+2. Converts Avro and OpenAPI schemas to Taxi equivalents
+3. Compiles the unified Taxi schema for testing
+4. Makes all types available in your test queries
 
 Here's the directory structure:
 

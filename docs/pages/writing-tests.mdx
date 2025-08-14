@@ -149,3 +149,116 @@ The stub scenarios approach is more convenient for most use cases, while the stu
  - Throwing errors / simulating failures
 
 For more information, read the dedicated docs on [Stubbing responses](/stubbing)
+
+## Direct Orbital API Access
+
+For advanced use cases, you can access the underlying Orbital instance directly using the `orbital()` method. This provides full access to Orbital's query engine and configuration:
+
+```kotlin
+it("should access Orbital API directly") {
+    val orbital = orbital()
+    
+    // Access the compiled schema
+    val schema = orbital.schema
+    val userType = schema.type("User")
+    
+    // Execute raw queries with full control
+    val queryResult = orbital.query("""
+        find { Person(PersonId == "123") }
+    """)
+    
+    // Access Orbital's internal services
+    val operationInvoker = orbital.operationInvoker
+    val schemaProvider = orbital.schemaProvider
+}
+```
+
+### Advanced Query Execution
+
+Use direct Orbital access for complex query scenarios:
+
+```kotlin
+it("should execute complex queries with Orbital API") {
+    val orbital = orbital()
+    
+    // Execute queries with custom context
+    val queryContext = QueryContext.builder()
+        .withParameter("userId", "user123")
+        .build()
+        
+    val result = orbital.query("""
+        given { userId : UserId = parameter("userId") }
+        find { User(id == userId) }
+    """, queryContext)
+    
+    // Access detailed query results
+    result.results.forEach { instance ->
+        println("Type: ${instance.type}")
+        println("Value: ${instance.value}")
+        println("Lineage: ${instance.dataSource}")
+    }
+}
+```
+
+### Schema Inspection and Validation
+
+Access schema metadata for advanced testing scenarios:
+
+```kotlin
+it("should validate schema structure") {
+    val orbital = orbital()
+    val schema = orbital.schema
+    
+    // Inspect types and their properties
+    val userType = schema.type("User")
+    userType.fields.forEach { field ->
+        println("Field: ${field.name}, Type: ${field.type}")
+    }
+    
+    // Validate service definitions
+    val services = schema.services
+    services.forEach { service ->
+        println("Service: ${service.name}")
+        service.operations.forEach { operation ->
+            println("  Operation: ${operation.name}")
+        }
+    }
+}
+```
+
+### Custom Operation Execution
+
+For testing specific operations or implementing custom behavior:
+
+```kotlin
+it("should execute operations directly") {
+    val orbital = orbital()
+    
+    // Execute a specific operation by name
+    val operation = orbital.schema.operation("getUserById")
+    val parameters = mapOf("id" to TypedValue.of("user123"))
+    
+    val result = orbital.operationInvoker.invoke(
+        operation,
+        parameters,
+        QueryContext.empty()
+    )
+    
+    // Process the raw result
+    result.fold(
+        { error -> fail("Operation failed: $error") },
+        { value -> value.value shouldBe expectedValue }
+    )
+}
+```
+
+### When to Use Direct API Access
+
+Use `orbital()` when you need to:
+- Inspect compiled schema metadata
+- Execute queries with custom parameters or context
+- Test Orbital's internal behavior or configuration
+- Implement custom query execution logic
+- Debug complex compilation or execution issues
+
+For most testing scenarios, the convenience methods (`queryForScalar`, `queryForObject`, etc.) are recommended as they provide a simpler API.
