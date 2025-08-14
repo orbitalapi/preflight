@@ -172,7 +172,7 @@ class PreflightExtension(
     }
 
 
-    private fun orbital(): Pair<Orbital, StubService> {
+    fun orbital(): Pair<Orbital, StubService> {
         buildInvokersOnce()
         return testVyneWithStub(this.schema, this.invokers)
     }

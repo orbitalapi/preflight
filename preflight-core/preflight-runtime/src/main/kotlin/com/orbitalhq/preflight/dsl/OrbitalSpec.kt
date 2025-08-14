@@ -78,6 +78,8 @@ abstract class OrbitalSpec(body: OrbitalSpec.() -> Unit, sourceConfig: Preflight
     suspend fun runNamedQueryForObject(queryName: String, arguments: Map<String, Any?> = emptyMap(), stubCustomizer: (StubService) -> Unit = {}) =
         preflight.runNamedQueryForObject(queryName, arguments, stubCustomizer)
 
+    fun orbital() = preflight.orbital()
+
     /**
      * Executes the query, and returns a raw scalar value (Int, String, Boolean, etc).
      * Optionally accepts a callback for customizing the Stub service, which allows for
