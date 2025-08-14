@@ -1,6 +1,9 @@
 
 import com.orbitalhq.kafka.KafkaService
 import com.orbitalhq.kafka.KafkaOperation
+import com.orbitalhq.mongo.Collection
+import com.orbitalhq.mongo.MongoService
+import com.orbitalhq.mongo.UpsertOperation
 
 model StockQuote {
     ticker : Ticker inherits String
@@ -10,4 +13,18 @@ model StockQuote {
 service StockKafka {
     @KafkaOperation( topic = "stockPrices", offset = "earliest" )
     stream quotes : Stream<StockQuote>
+}
+
+
+@Collection(connection = "quotes-mongo", collection = "quotes")
+parameter model MongoStockQuote {
+    symbol : Ticker
+}
+
+@MongoService( connection = "quotes-mongo" )
+service MongoQuotesService {
+   table quotes : MongoStockQuote[]
+
+   @UpsertOperation
+   write operation insertQuote(MongoStockQuote):MongoStockQuote
 }

@@ -7,7 +7,7 @@ plugins {
 }
 
 preflight {
-    connectors = listOf(ConnectorSupport.Kafka,)
+    connectors = listOf(ConnectorSupport.Kafka,ConnectorSupport.MongoDb)
 }
 
 repositories {

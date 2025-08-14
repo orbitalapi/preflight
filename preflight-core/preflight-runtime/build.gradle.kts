@@ -22,6 +22,7 @@ dependencies {
         exclude(group = "io.confluent")
     }
     compileOnly("org.testcontainers:kafka")
+    compileOnly("com.orbitalhq:mongodb-connector:$orbitalVersion")
 
     compileOnly("com.orbitalhq:taxiql-query-engine:$orbitalVersion") {
         // Not published to maven central, and not needed for testing

@@ -22,5 +22,8 @@ enum class ConnectorSupport(val configureBuild: (OrbitalVersion, Project) -> Uni
                 }
             }
         }
+    }),
+    MongoDb({ orbitalVersion, project ->
+        project.dependencies.add("implementation", "com.orbitalhq:mongodb-connector:$orbitalVersion")
     })
 }
