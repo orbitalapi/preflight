@@ -126,5 +126,10 @@ configurations.all {
             useVersion("3.9.1")
             because("Avoid Confluent's -ccs build, use Apache Kafka client instead")
         }
+        // Replace commercial JOOQ with OSS version
+        if (requested.group == "org.jooq.pro" && requested.name == "jooq") {
+            useTarget("org.jooq:jooq:${requested.version}")
+            because("Use OSS JOOQ instead of commercial version")
+        }
     }
 }
