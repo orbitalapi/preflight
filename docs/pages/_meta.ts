@@ -3,6 +3,7 @@ export default {
     "index": "Getting started",
     "writing-tests" : "Writing tests",
     "stubbing" : "Stubbing responses",
+    "integration-testing": "Integration testing",
     "environment-variables" : "Environment variables",
     "faq" : "Tips and FAQ's"
 };

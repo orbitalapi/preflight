@@ -1,0 +1,297 @@
+# Integration Testing with Containers
+
+Preflight provides built-in support for integration testing using [TestContainers](https://testcontainers.com/), allowing you to test against real databases, message brokers, and other infrastructure components.
+
+## Overview
+
+Container-based integration testing in Preflight allows you to:
+
+- Test Taxi schemas against real infrastructure (Kafka, databases, APIs)
+- Verify data flows end-to-end with actual message brokers
+- Ensure connector configurations work with real systems
+- Run isolated, reproducible tests that don't depend on external services
+
+## Getting Started
+
+### 1. Configure Connector Support
+
+First, declare which connectors your tests need in your `build.gradle.kts`:
+
+```kotlin
+import com.orbitalhq.preflight.gradle.ConnectorSupport
+
+plugins {
+    id("com.orbitalhq.preflight")
+}
+
+preflight {
+    connectors = listOf(ConnectorSupport.Kafka)
+}
+```
+
+This automatically adds the necessary TestContainers dependencies and Orbital connector libraries.
+
+### 2. Define Your Taxi Schema
+
+Create Taxi services that connect to your infrastructure:
+
+```taxi
+// src/stock-quotes.taxi
+import com.orbitalhq.kafka.KafkaService
+import com.orbitalhq.kafka.KafkaOperation
+
+model StockQuote {
+    ticker : Ticker inherits String
+    price : Price inherits Decimal
+}
+
+@KafkaService( connectionName = "quotes-kafka" )
+service StockKafka {
+    @KafkaOperation( topic = "stockPrices", offset = "earliest" )
+    stream quotes : Stream<StockQuote>
+}
+```
+
+### 3. Write Container Tests
+
+Create test specs that use containers:
+
+```kotlin
+// test/WithContainersSpec.kt
+import app.cash.turbine.test
+import com.orbitalhq.expectRawMap
+import com.orbitalhq.preflight.dsl.OrbitalSpec
+import com.orbitalhq.preflight.dsl.containers.kafka.KafkaContainerSupport
+import com.orbitalhq.preflight.dsl.containers.kafka.kafkaContainer
+import io.kotest.matchers.shouldBe
+
+class WithContainersSpec : OrbitalSpec({
+    // Declare containers needed for tests
+    withContainers(
+        kafkaContainer("quotes-kafka")
+    )
+    
+    describe("integration tests") {
+        it("should process messages from Kafka") {
+            val kafkaContainer = containerForConnection<KafkaContainerSupport>("quotes-kafka")
+            
+            queryForStreamOfObjects("""
+                stream { StockQuote }
+            """.trimIndent()).test {
+                // Send test data to Kafka
+                kafkaContainer.sendMessage(
+                    """{ "ticker": "AAPL", "price": 150.25 }""", 
+                    "stockPrices"
+                )
+                
+                // Verify the data flows through
+                val result = expectRawMap()
+                result.shouldBe(mapOf(
+                    "ticker" to "AAPL",
+                    "price" to 150.25
+                ))
+            }
+        }
+    }
+})
+```
+
+## Kafka Container Support
+
+### Configuration
+
+The Kafka connector provides a pre-configured Kafka container with the necessary setup:
+
+```kotlin
+kafkaContainer(
+    connectionName = "my-kafka",  // Must match connectionName in Taxi schema
+    groupId = "test-consumer"     // Optional, auto-generated if not provided
+)
+```
+
+### Container Interaction API
+
+Once containers are running, access them through the `containerForConnection` method:
+
+```kotlin
+val kafkaContainer = containerForConnection<KafkaContainerSupport>("quotes-kafka")
+
+// Send messages to topics
+kafkaContainer.sendMessage(
+    message = """{"field": "value"}""",
+    topic = "my-topic",
+    key = "optional-key",
+    headers = listOf() // Optional headers
+)
+
+// Send raw bytes
+kafkaContainer.sendMessage(
+    message = byteArrayOf(1, 2, 3),
+    topic = "binary-topic"
+)
+```
+
+### Testing Streaming Queries
+
+Use Turbine's `test` function to verify streaming behavior:
+
+```kotlin
+queryForStreamOfObjects("stream { MyModel }").test {
+    // Send test data
+    kafkaContainer.sendMessage("""{"field": "value1"}""", "topic")
+    val first = expectRawMap()
+    first.shouldBe(mapOf("field" to "value1"))
+    
+    // Send more data
+    kafkaContainer.sendMessage("""{"field": "value2"}""", "topic")
+    val second = expectRawMap()
+    second.shouldBe(mapOf("field" to "value2"))
+    
+    // Verify stream completes or continues as expected
+}
+```
+
+## Container Lifecycle
+
+Containers are managed automatically by Preflight:
+
+1. **Startup**: Containers start before your tests run
+2. **Connection**: Orbital connectors are configured with container connection details  
+3. **Execution**: Your tests interact with real running infrastructure
+4. **Cleanup**: Containers are automatically stopped after tests complete
+
+### Lazy Initialization
+
+Container connections are created lazily when you first execute a query. This ensures:
+- Containers are fully started and ready
+- Connection details (ports, URLs) are available
+- Tests don't fail due to timing issues
+
+## Best Practices
+
+### Connection Naming
+
+Use descriptive connection names that match your schema:
+
+```kotlin
+// In build.gradle.kts
+kafkaContainer("user-events-kafka")
+
+// In schema
+@KafkaService( connectionName = "user-events-kafka" )
+service UserEventStream { ... }
+```
+
+### Test Data Management
+
+Send test data programmatically for reliable tests:
+
+```kotlin
+describe("user event processing") {
+    it("should handle user registration") {
+        val kafka = containerForConnection<KafkaContainerSupport>("user-events-kafka")
+        
+        kafka.sendMessage("""
+            {
+                "eventType": "USER_REGISTERED", 
+                "userId": "123",
+                "timestamp": "2024-01-15T10:30:00Z"
+            }
+        """.trimIndent(), "user-events")
+        
+        // Test your query logic...
+    }
+}
+```
+
+### Resource Isolation
+
+Each test spec gets fresh containers, ensuring isolation:
+
+```kotlin
+class UserEventsSpec : OrbitalSpec({
+    withContainers(kafkaContainer("events"))
+    // Tests in this spec share the same container instance
+})
+
+class OrderEventsSpec : OrbitalSpec({
+    withContainers(kafkaContainer("events"))
+    // This gets a separate container instance
+})
+```
+
+## Supported Connectors
+
+Currently supported container types:
+
+### Kafka
+- **Usage**: `ConnectorSupport.Kafka`
+- **Container**: Confluent Platform Kafka
+- **Features**: Topic creation, message production, consumer groups
+- **API**: `KafkaContainerSupport` with `sendMessage()` methods
+
+### Future Connectors
+Additional connectors are planned:
+- PostgreSQL databases
+- REST APIs with WireMock
+- Message queues (RabbitMQ, ActiveMQ)
+- Redis caches
+
+## Troubleshooting
+
+### Container Startup Issues
+
+If containers fail to start:
+
+```kotlin
+// Increase startup timeout
+kafkaContainer("my-kafka").apply {
+    withStartupTimeout(Duration.ofMinutes(5))
+}
+```
+
+### Connection Timing
+
+If you get "container not found" errors, ensure:
+- Connection names match between `kafkaContainer()` and `@KafkaService(connectionName=...)`
+- You call `containerForConnection()` after the query starts (inside test methods)
+
+### Port Conflicts
+
+TestContainers automatically assigns available ports. If you need specific ports:
+
+```kotlin
+// Let TestContainers assign ports (recommended)
+val kafka = containerForConnection<KafkaContainerSupport>("my-kafka")
+// Use kafka.kafkaContainer.bootstrapServers for the actual address
+```
+
+## Performance Tips
+
+### Container Reuse
+
+Containers are reused within a spec but not between specs. For faster tests:
+
+```kotlin
+// Group related tests in the same spec
+class KafkaIntegrationSpec : OrbitalSpec({
+    withContainers(kafkaContainer("kafka"))
+    
+    describe("user events") {
+        it("handles registration") { /* ... */ }
+        it("handles updates") { /* ... */ }
+        it("handles deletion") { /* ... */ }
+    }
+})
+```
+
+### Parallel Execution
+
+Different specs run in parallel with isolated containers:
+
+```kotlin
+// These can run simultaneously
+class UserServiceSpec : OrbitalSpec({ /* ... */ })
+class OrderServiceSpec : OrbitalSpec({ /* ... */ })
+class PaymentServiceSpec : OrbitalSpec({ /* ... */ })
+```
