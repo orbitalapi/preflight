@@ -67,16 +67,20 @@ abstract class OrbitalSpec(body: OrbitalSpec.() -> Unit, sourceConfig: Preflight
             return preflight.schema
         }
 
-    suspend fun queryForStreamOfObjects(query: String, stubCustomizer: (StubService) -> Unit = {}): Flow<Map<String, Any>> {
-        return preflight.queryForStreamOfObjects(query, stubCustomizer)
+    suspend fun queryForStreamOfMaps(query: String, stubCustomizer: (StubService) -> Unit = {}): Flow<Map<String, Any>> {
+        return preflight.queryForStreamOfMaps(query, stubCustomizer)
     }
     suspend fun queryForStreamOfTypedInstances(query: String, stubCustomizer: (StubService) -> Unit = {}): Flow<TypedInstance> {
         return preflight.queryForStreamOfTypedInstances(query, stubCustomizer)
     }
-    suspend fun runNamedQueryForStream(queryName: String, arguments: Map<String,Any?> = emptyMap(), stubCustomizer: (StubService) -> Unit = {}):Flow<TypedInstance> =
-        preflight.runNamedQueryForStream(queryName, arguments, stubCustomizer)
-    suspend fun runNamedQueryForObject(queryName: String, arguments: Map<String, Any?> = emptyMap(), stubCustomizer: (StubService) -> Unit = {}) =
-        preflight.runNamedQueryForObject(queryName, arguments, stubCustomizer)
+    suspend fun runNamedQueryForStreamOfTypedInstances(queryName: String, arguments: Map<String,Any?> = emptyMap(), stubCustomizer: (StubService) -> Unit = {}):Flow<TypedInstance> =
+        preflight.runNamedQueryForStreamOfTypedInstances(queryName, arguments, stubCustomizer)
+    suspend fun runNamedQueryForMap(queryName: String, arguments: Map<String, Any?> = emptyMap(), stubCustomizer: (StubService) -> Unit = {}) =
+        preflight.runNamedQueryForTypedInstance(queryName, arguments, stubCustomizer)
+    suspend fun runNamedQueryForCollectionOfTypedInstances(queryName: String, arguments: Map<String, Any?> = emptyMap(), stubCustomizer: (StubService) -> Unit = {}) =
+        preflight.runNamedQueryForCollectionOfTypedInstances(queryName, arguments, stubCustomizer)
+    suspend fun runNamedQueryForCollectionOfMaps(queryName: String, arguments: Map<String, Any?> = emptyMap(), stubCustomizer: (StubService) -> Unit = {}) =
+        preflight.runNamedQueryForCollectionOfMaps(queryName, arguments, stubCustomizer)
 
     fun orbital() = preflight.orbital()
 
@@ -101,46 +105,46 @@ abstract class OrbitalSpec(body: OrbitalSpec.() -> Unit, sourceConfig: Preflight
         preflight.queryForScalar(this, *stubScenarios)
 
     /**
-     * Executes the query and returns a single object/entity.
+     * Executes the query and returns a single map/entity.
      * Accepts a callback for customizing the Stub service, which allows for
      * fine-grained control of how stubs are configured.
      * 
      * @param stubCustomizer Optional callback to customize stub service configuration
-     * @return The object result of the query execution
+     * @return The map result of the query execution
      */
-    suspend fun String.queryForObject(stubCustomizer: (StubService) -> Unit = {}) =
-        preflight.queryForObject(this, stubCustomizer)
+    suspend fun String.queryForMap(stubCustomizer: (StubService) -> Unit = {}) =
+        preflight.queryForMap(this, stubCustomizer)
 
     /**
-     * Executes the query and returns a single object/entity.
+     * Executes the query and returns a single map/entity.
      * This overload accepts stub scenarios for convenient stubbing configuration.
      * 
      * @param stubScenarios Variable number of stub scenarios to configure service behavior
-     * @return The object result of the query execution
+     * @return The map result of the query execution
      */
-    suspend fun String.queryForObject(vararg stubScenarios: StubScenario) =
-        preflight.queryForObject(this, *stubScenarios)
+    suspend fun String.queryForMap(vararg stubScenarios: StubScenario) =
+        preflight.queryForMap(this, *stubScenarios)
 
     /**
-     * Executes the query and returns a collection of objects/entities.
+     * Executes the query and returns a collection of maps/entities.
      * Accepts a callback for customizing the Stub service, which allows for
      * fine-grained control of how stubs are configured.
      * 
      * @param stubCustomizer Optional callback to customize stub service configuration
      * @return The collection result of the query execution
      */
-    suspend fun String.queryForCollection(stubCustomizer: (StubService) -> Unit = {}) =
-        preflight.queryForCollection(this, stubCustomizer)
+    suspend fun String.queryForCollectionOfMaps(stubCustomizer: (StubService) -> Unit = {}) =
+        preflight.queryForCollectionOfMaps(this, stubCustomizer)
 
     /**
-     * Executes the query and returns a collection of objects/entities.
+     * Executes the query and returns a collection of maps/entities.
      * This overload accepts stub scenarios for convenient stubbing configuration.
      * 
      * @param stubScenarios Variable number of stub scenarios to configure service behavior
      * @return The collection result of the query execution
      */
-    suspend fun String.queryForCollection(vararg stubScenarios: StubScenario) =
-        preflight.queryForCollection(this, *stubScenarios)
+    suspend fun String.queryForCollectionOfMaps(vararg stubScenarios: StubScenario) =
+        preflight.queryForCollectionOfMaps(this, *stubScenarios)
 
     /**
      * Executes the query and returns a strongly-typed instance based on the query's return type.

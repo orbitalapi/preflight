@@ -8,7 +8,7 @@ import io.kotest.matchers.shouldBe
 class StreamingQuerySpec : OrbitalSpec({
     describe("Project with Orbital dependencies") {
         it("can unit test a streaming query") {
-            runNamedQueryForStream("com.foo.StreamPersonEventsToMongo") { stubService ->
+            runNamedQueryForStreamOfTypedInstances("com.foo.StreamPersonEventsToMongo") { stubService ->
                 stubService.addResponseEmitter("clickEvents")
                     .next(
                         """{

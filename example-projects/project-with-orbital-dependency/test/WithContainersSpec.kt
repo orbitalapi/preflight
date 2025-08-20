@@ -16,7 +16,7 @@ class WithContainersSpec : OrbitalSpec({
     describe("test with containers") {
         it("should stream data from a Kafka container") {
             val kafkaContainer = containerForConnection<KafkaContainerSupport>("quotes-kafka")
-            queryForStreamOfObjects(
+            queryForStreamOfMaps(
                 """
                 stream { StockQuote }
             """.trimIndent()
@@ -29,7 +29,7 @@ class WithContainersSpec : OrbitalSpec({
 
         it("should stream data from Kafka into Mongo") {
             val kafkaContainer = containerForConnection<KafkaContainerSupport>("quotes-kafka")
-            queryForStreamOfObjects(
+            queryForStreamOfMaps(
                 """
                 stream { StockQuote }
                 call MongoQuotesService::insertQuote

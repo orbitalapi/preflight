@@ -11,7 +11,7 @@ class PersonTest : OrbitalSpec({
         it("returning an object") {
             """given { Person = { id: 123, age: 12 } }
                 find { PossibleAdult }    
-                """.queryForObject()
+                """.queryForMap()
                 .shouldBe(
                     mapOf(
                         "id" to 123,
@@ -24,7 +24,7 @@ class PersonTest : OrbitalSpec({
             """find {
                 shouldBeTrue : Boolean = "hello".startsWith("he")
             }
-            """.queryForObject()
+            """.queryForMap()
                 .shouldBe(mapOf("shouldBeTrue" to true))
         }
     }
@@ -34,7 +34,7 @@ class PersonTest : OrbitalSpec({
         it("should let me customize a stub return value") {
             """
             find { Person(PersonId == 1) } as PossibleAdult
-        """.queryForObject(
+        """.queryForMap(
                 stub("getPerson").returns("""{ "id" : 123, "age" : 36 }""")
             )
                 .shouldBe(mapOf(
@@ -48,7 +48,7 @@ class PersonTest : OrbitalSpec({
         xit("should generate a playground link when a test fails") {
             """
             find { Person(PersonId == 1) } as PossibleAdult
-        """.queryForObject(
+        """.queryForMap(
                 stub("getPerson").returns("""{ "id" : 123, "age" : 36 }""")
             )
                 .shouldBe(mapOf(

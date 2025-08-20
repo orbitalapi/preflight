@@ -16,6 +16,7 @@ import com.orbitalhq.schemaServer.core.file.packages.FileSystemPackageLoader
 import com.orbitalhq.schemas.taxi.TaxiSchema
 import com.orbitalhq.stubbing.StubService
 import com.orbitalhq.testVyneWithStub
+import com.orbitalhq.typedInstances
 import com.orbitalhq.utils.files.ReactivePollingFileSystemMonitor
 import io.kotest.assertions.AssertionFailedError
 import io.kotest.assertions.fail
@@ -194,18 +195,18 @@ class PreflightExtension(
     }
 
 
-    suspend fun queryForObject(taxiQl: String, vararg stubScenarios: StubScenario) =
-        queryForObject(taxiQl, stubScenariosToCustomizer(stubScenarios.toList()))
+    suspend fun queryForMap(taxiQl: String, vararg stubScenarios: StubScenario) =
+        queryForMap(taxiQl, stubScenariosToCustomizer(stubScenarios.toList()))
 
-    suspend fun queryForObject(taxiQl: String, stubCustomizer: (StubService) -> Unit = {}): Map<String, Any?> {
+    suspend fun queryForMap(taxiQl: String, stubCustomizer: (StubService) -> Unit = {}): Map<String, Any?> {
         return query(taxiQl, emptyMap(), stubCustomizer)
             .firstRawObject()
     }
 
-    suspend fun queryForCollection(taxiQl: String, vararg stubScenarios: StubScenario) =
-        queryForCollection(taxiQl, stubScenariosToCustomizer(stubScenarios.toList()))
+    suspend fun queryForCollectionOfMaps(taxiQl: String, vararg stubScenarios: StubScenario) =
+        queryForCollectionOfMaps(taxiQl, stubScenariosToCustomizer(stubScenarios.toList()))
 
-    suspend fun queryForCollection(
+    suspend fun queryForCollectionOfMaps(
         taxiQl: String,
         stubCustomizer: (StubService) -> Unit = {}
     ): List<Map<String, Any?>> {
@@ -221,8 +222,25 @@ class PreflightExtension(
             .firstTypedInstace()
     }
 
+    suspend fun runNamedQueryForCollectionOfTypedInstances(
+        queryName: String,
+        arguments: Map<String, Any?> = emptyMap(),
+        stubCustomizer: (StubService) -> Unit = {}
+    ): List<TypedInstance> {
+        return runNamedQuery(queryName, arguments, stubCustomizer)
+            .typedInstances()
+    }
 
-    suspend fun runNamedQueryForObject(
+    suspend fun runNamedQueryForCollectionOfMaps(
+        queryName: String,
+        arguments: Map<String, Any?> = emptyMap(),
+        stubCustomizer: (StubService) -> Unit = {}
+    ): List<Map<String,Any?>> {
+        return runNamedQuery(queryName, arguments, stubCustomizer)
+            .rawObjects()
+    }
+
+    suspend fun runNamedQueryForTypedInstance(
         queryName: String,
         arguments: Map<String, Any?> = emptyMap(),
         stubCustomizer: (StubService) -> Unit = {}
@@ -231,12 +249,31 @@ class PreflightExtension(
             .firstTypedInstace()
     }
 
-    suspend fun runNamedQueryForStream(
+    suspend fun runNamedQueryForMap(
+        queryName: String,
+        arguments: Map<String, Any?> = emptyMap(),
+        stubCustomizer: (StubService) -> Unit = {}
+    ): Map<String,Any?> {
+        return runNamedQuery(queryName, arguments, stubCustomizer)
+            .firstTypedInstace()
+            .toRawObject() as Map<String,Any?>
+    }
+
+    suspend fun runNamedQueryForStreamOfTypedInstances(
         queryName: String,
         arguments: Map<String, Any?> = emptyMap(),
         stubCustomizer: (StubService) -> Unit = {}
     ): Flow<TypedInstance> {
         return runNamedQuery(queryName, arguments, stubCustomizer).results
+    }
+
+    suspend fun runNamedQueryForStreamOfMaps(
+        queryName: String,
+        arguments: Map<String, Any?> = emptyMap(),
+        stubCustomizer: (StubService) -> Unit = {}
+    ): Flow<Map<String,Any?>> {
+        return runNamedQuery(queryName, arguments, stubCustomizer).results
+            .map { it.toRawObject() as Map<String,Any?>}
     }
 
     suspend fun queryForStreamOfTypedInstances(
@@ -246,7 +283,7 @@ class PreflightExtension(
         return query(taxiQl, emptyMap(), stubCustomizer).results
 
     }
-    suspend fun queryForStreamOfObjects(
+    suspend fun queryForStreamOfMaps(
         taxiQl: String,
         stubCustomizer: (StubService) -> Unit = {}
     ):Flow<Map<String,Any>> {
