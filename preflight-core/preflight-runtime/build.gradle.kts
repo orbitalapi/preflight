@@ -3,10 +3,11 @@ plugins {
     `maven-publish`
 }
 
-val taxiVersion = "1.66.0-SNAPSHOT"
-val orbitalVersion = "0.36.0-M9" // Default version, can be overridden in consumer projects
+val taxiVersion = "1.69.1"
+val orbitalVersion = "0.37.0-SNAPSHOT" // Default version, can be overridden in consumer projects
 
 dependencies {
+    implementation(project(":preflight-spec"))
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     implementation(platform("org.testcontainers:testcontainers-bom:1.19.3"))
