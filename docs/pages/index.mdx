@@ -89,14 +89,18 @@ Here's the directory structure:
 ```
 ├── src
 │   └── schema.taxi
-├── test
+├── test                        (Optional - for Kotlin tests)
 │   └── SchemaSpec.kt
-└── test-resources (Optional)
-    └── env.conf (Optional)
+├── test-resources
+│   ├── env.conf                (Optional - environment variables)
+│   └── specs                   (Optional - markdown spec files)
+│       └── my-test.spec.md
 taxi.conf
 build.gradle.kts
 settings.gradle.kts (Often blank)
 ```
+
+Tests can be written as Kotlin code in `test/` (see [Writing tests](/writing-tests)), as markdown spec files in `test-resources/specs/` (see [Spec files](/spec-files)), or both.
 
 Then, to write your first test, create a folder `test` next to your `src` folder.
 By convention, these are named ending in `Spec.kt` or `Test.kt`.
