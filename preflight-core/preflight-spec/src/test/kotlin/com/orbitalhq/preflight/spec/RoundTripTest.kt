@@ -75,6 +75,40 @@ class RoundTripTest : DescribeSpec({
             roundTripped shouldBe original
         }
 
+        it("round-trips a spec with TYPED_INSTANCE result format") {
+            val original = TestSpec(
+                specVersion = "0.1",
+                name = "TypedInstance Test",
+                description = null,
+                query = "find { Customer }",
+                dataSources = listOf(
+                    Stub("Get Customer", "getCustomer", StubMode.REQUEST_RESPONSE, """{ "id": "1" }""", null)
+                ),
+                expectedResult = """{ "type": "Customer", "value": { "id": "1" } }""",
+                resultFormat = ResultFormat.TYPED_INSTANCE,
+                flow = null
+            )
+            val roundTripped = TestSpecReader.read(TestSpecWriter.write(original))
+            roundTripped shouldBe original
+        }
+
+        it("round-trips a spec with default JSON result format") {
+            val original = TestSpec(
+                specVersion = "0.1",
+                name = "Plain JSON Test",
+                description = null,
+                query = "find { Customer }",
+                dataSources = listOf(
+                    Stub("Get Customer", "getCustomer", StubMode.REQUEST_RESPONSE, """{ "id": "1" }""", null)
+                ),
+                expectedResult = """{ "id": "1" }""",
+                resultFormat = ResultFormat.JSON,
+                flow = null
+            )
+            val roundTripped = TestSpecReader.read(TestSpecWriter.write(original))
+            roundTripped shouldBe original
+        }
+
         it("round-trips a spec with mixed stream and request-response stubs") {
             val original = TestSpec(
                 specVersion = "0.1",

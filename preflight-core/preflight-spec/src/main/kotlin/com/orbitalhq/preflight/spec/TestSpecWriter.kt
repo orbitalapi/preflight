@@ -69,7 +69,11 @@ object TestSpecWriter {
         // Expected Result section
         appendLine("## Expected Result")
         appendLine()
-        appendLine("```json")
+        val infoString = when (spec.resultFormat) {
+            ResultFormat.JSON -> "json"
+            ResultFormat.TYPED_INSTANCE -> "json typedInstance"
+        }
+        appendLine("```$infoString")
         appendLine(spec.expectedResult)
         appendLine("```")
 

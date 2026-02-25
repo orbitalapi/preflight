@@ -394,6 +394,112 @@ class TestSpecReaderTest : DescribeSpec({
             spec.query shouldBe "find { Foo }"
         }
 
+        it("parses Expected Results with no qualifier as JSON format") {
+            val markdown = """
+                |---
+                |spec-version: 0.1
+                |---
+                |
+                |# Test
+                |
+                |## Query
+                |
+                |```taxiql
+                |find { Foo }
+                |```
+                |
+                |## Data Sources
+                |
+                |### Stub
+                |<!-- operation: getFoo -->
+                |
+                |Response:
+                |```json
+                |{}
+                |```
+                |
+                |## Expected Result
+                |
+                |```json
+                |{}
+                |```
+            """.trimMargin()
+
+            val spec = TestSpecReader.read(markdown)
+            spec.resultFormat shouldBe ResultFormat.JSON
+        }
+
+        it("parses Expected Results with typedInstance qualifier") {
+            val markdown = """
+                |---
+                |spec-version: 0.1
+                |---
+                |
+                |# Test
+                |
+                |## Query
+                |
+                |```taxiql
+                |find { Foo }
+                |```
+                |
+                |## Data Sources
+                |
+                |### Stub
+                |<!-- operation: getFoo -->
+                |
+                |Response:
+                |```json
+                |{}
+                |```
+                |
+                |## Expected Result
+                |
+                |```json typedInstance
+                |{ "type": "Customer", "value": { "name": "Alice" } }
+                |```
+            """.trimMargin()
+
+            val spec = TestSpecReader.read(markdown)
+            spec.resultFormat shouldBe ResultFormat.TYPED_INSTANCE
+            spec.expectedResult shouldBe """{ "type": "Customer", "value": { "name": "Alice" } }"""
+        }
+
+        it("ignores unknown qualifier and defaults to JSON") {
+            val markdown = """
+                |---
+                |spec-version: 0.1
+                |---
+                |
+                |# Test
+                |
+                |## Query
+                |
+                |```taxiql
+                |find { Foo }
+                |```
+                |
+                |## Data Sources
+                |
+                |### Stub
+                |<!-- operation: getFoo -->
+                |
+                |Response:
+                |```json
+                |{}
+                |```
+                |
+                |## Expected Result
+                |
+                |```json unknownFormat
+                |{}
+                |```
+            """.trimMargin()
+
+            val spec = TestSpecReader.read(markdown)
+            spec.resultFormat shouldBe ResultFormat.JSON
+        }
+
         it("ignores unrecognised labels within stub sections") {
             val markdown = """
                 |---

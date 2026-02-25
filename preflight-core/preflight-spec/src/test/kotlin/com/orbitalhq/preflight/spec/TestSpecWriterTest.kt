@@ -90,6 +90,22 @@ class TestSpecWriterTest : DescribeSpec({
             output shouldNotContain "```mermaid"
         }
 
+        it("writes plain json info string for JSON format") {
+            val spec = minimalSpec()
+            val output = TestSpecWriter.write(spec)
+            output shouldContain "```json\n{ \"id\": \"1\" }\n```"
+            output shouldNotContain "typedInstance"
+        }
+
+        it("writes json typedInstance info string for TYPED_INSTANCE format") {
+            val spec = minimalSpec().copy(
+                resultFormat = ResultFormat.TYPED_INSTANCE,
+                expectedResult = """{ "type": "Customer", "value": { "id": "1" } }"""
+            )
+            val output = TestSpecWriter.write(spec)
+            output shouldContain "```json typedInstance"
+        }
+
         it("writes stream stub with multiple messages in order") {
             val spec = minimalSpec().copy(
                 dataSources = listOf(

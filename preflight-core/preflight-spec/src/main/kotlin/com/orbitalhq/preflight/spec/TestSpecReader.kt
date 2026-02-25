@@ -34,6 +34,7 @@ object TestSpecReader {
         var query: String? = null
         val dataSources = mutableListOf<Stub>()
         var expectedResult: String? = null
+        var resultFormat: ResultFormat = ResultFormat.JSON
         var flow: String? = null
 
         var currentH2: String? = null
@@ -164,6 +165,12 @@ object TestSpecReader {
                         }
                         "Expected Result" -> {
                             expectedResult = node.literal.trimEnd()
+                            val info = node.info?.trim() ?: "json"
+                            val parts = info.split("\\s+".toRegex())
+                            resultFormat = when (parts.getOrNull(1)) {
+                                "typedInstance" -> ResultFormat.TYPED_INSTANCE
+                                else -> ResultFormat.JSON
+                            }
                         }
                         "Flow" -> {
                             flow = node.literal.trimEnd()
@@ -217,6 +224,7 @@ object TestSpecReader {
             query = query,
             dataSources = dataSources,
             expectedResult = expectedResult,
+            resultFormat = resultFormat,
             flow = flow
         )
     }

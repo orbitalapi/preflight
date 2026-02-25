@@ -7,8 +7,14 @@ data class TestSpec(
     val query: String,
     val dataSources: List<Stub>,
     val expectedResult: String,
+    val resultFormat: ResultFormat = ResultFormat.JSON,
     val flow: String?
 )
+
+enum class ResultFormat {
+    JSON,
+    TYPED_INSTANCE
+}
 
 data class Stub(
     val label: String,
