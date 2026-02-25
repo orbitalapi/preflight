@@ -22,7 +22,7 @@ abstract class MarkdownSpec(
 
     if (Files.exists(specsDir) && Files.isDirectory(specsDir)) {
         val specFiles = Files.walk(specsDir)
-            .filter { it.isRegularFile() && it.extension == "md" }
+            .filter { it.isRegularFile() && it.extension == "md" && it.fileName.toString().endsWith(".spec.md") }
             .sorted()
             .toList()
 
