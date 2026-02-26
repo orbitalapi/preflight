@@ -3,8 +3,8 @@ plugins {
     `maven-publish`
 }
 
-val taxiVersion = "1.69.1"
-val orbitalVersion = "0.37.0-SNAPSHOT" // Default version, can be overridden in consumer projects
+val taxiVersion = "1.71.0-SNAPSHOT"
+val orbitalVersion = "0.38.0-SNAPSHOT" // Default version, can be overridden in consumer projects
 
 dependencies {
     implementation(project(":preflight-spec"))
