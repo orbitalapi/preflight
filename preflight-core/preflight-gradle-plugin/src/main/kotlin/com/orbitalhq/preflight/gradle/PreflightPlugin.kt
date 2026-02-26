@@ -49,6 +49,33 @@ class PreflightPlugin : Plugin<Project> {
         val testSourceSet = sourceSets.maybeCreate("test")
         testSourceSet.resources.srcDir("test-resources")
         testSourceSet.java.srcDir("test")  // top-level test directory
+
+        // Generate a concrete MarkdownSpec subclass so .spec.md files are auto-discovered
+        val generatedTestDir = project.layout.buildDirectory.dir("generated/test/kotlin")
+        testSourceSet.java.srcDir(generatedTestDir)
+
+        val generateSpecRunner = project.tasks.register("generateSpecRunner") {
+            val outputDir = generatedTestDir.get().asFile
+            outputs.dir(outputDir)
+            doLast {
+                val dir = outputDir.resolve("preflight/generated")
+                dir.mkdirs()
+                dir.resolve("PreflightSpecRunner.kt").writeText(
+                    """
+                    |package preflight.generated
+                    |
+                    |import com.orbitalhq.preflight.dsl.MarkdownSpec
+                    |
+                    |class PreflightSpecRunner : MarkdownSpec()
+                    """.trimMargin()
+                )
+            }
+        }
+
+        project.tasks.named("compileTestKotlin").configure {
+            dependsOn(generateSpecRunner)
+        }
+
         testSourceSet.compileClasspath += mainSourceSet.output + mainSourceSet.compileClasspath
         testSourceSet.runtimeClasspath += mainSourceSet.output + mainSourceSet.runtimeClasspath
 

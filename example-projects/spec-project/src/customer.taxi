@@ -1,0 +1,19 @@
+type CustomerId inherits String
+type CustomerName inherits String
+type CustomerAge inherits Int
+
+model Customer {
+    id : CustomerId
+    name : CustomerName
+    age : CustomerAge
+}
+
+type IsAdult inherits Boolean = (age: CustomerAge) -> age >= 18
+
+model CustomerProfile inherits Customer {
+    isAdult : IsAdult
+}
+
+service CustomerApi {
+    operation getCustomer(CustomerId): Customer(...)
+}

@@ -127,7 +127,6 @@ fun kafkaContainer(
             schemaStore,
             formatRegistry = formatRegistry,
             meterRegistry = SimpleMeterRegistry(),
-            emitConsumerInfoMessages = false,
             kafkaConsumerStatsFlowBuilder = KafkaConsumerStatsFlowBuilder(GaugeRegistry.simple())
         )
         KafkaInvoker(kafkaStreamManager, kafkaStreamPublisher)
