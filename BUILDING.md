@@ -25,7 +25,29 @@ cd preflight-core
 ./gradlew publishAllMavenLocal
 ```
 
-Example projects can then resolve the plugin and runtime from `mavenLocal()`.
+### Using a local pre-release version in another project
+
+Consuming projects need `mavenLocal()` in their `pluginManagement` repositories so Gradle can find the locally-published plugin:
+
+```kotlin
+// settings.gradle.kts
+pluginManagement {
+    repositories {
+        mavenLocal()
+        gradlePluginPortal()
+    }
+}
+```
+
+Then reference the local version in `build.gradle.kts`:
+
+```kotlin
+plugins {
+    id("com.orbitalhq.preflight") version "0.1.0" // matches the version you published locally
+}
+```
+
+The plugin itself injects the Orbital Maven repositories automatically, so no other repository configuration is needed in the consuming project.
 
 ## Bumping the version
 
