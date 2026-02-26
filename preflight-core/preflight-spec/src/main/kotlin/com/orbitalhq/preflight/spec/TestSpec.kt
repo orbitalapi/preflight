@@ -1,14 +1,14 @@
 package com.orbitalhq.preflight.spec
 
 data class TestSpec(
-    val specVersion: String,
     val name: String,
     val description: String?,
     val query: String,
     val dataSources: List<Stub>,
     val expectedResult: String,
     val resultFormat: ResultFormat = ResultFormat.JSON,
-    val flow: String?
+    val flow: String?,
+    val specVersion: String = "0.1",
 )
 
 enum class ResultFormat {
