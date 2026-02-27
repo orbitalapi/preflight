@@ -1,19 +1,25 @@
 # Building and Releasing
 
+## Project Structure
+
+The repository uses two separate Gradle builds connected via composite builds:
+
+- **`preflight-spec/`** — Standalone build for the markdown test spec parser/writer. Has no Orbital dependencies (only commonmark + jackson), so Orbital itself can depend on it without circular dependencies.
+- **`preflight-core/`** — Main build containing `preflight-runtime` and `preflight-gradle-plugin`. Depends on Orbital libraries. Consumes `preflight-spec` via composite build (`includeBuild`).
+
+The root `settings.gradle.kts` wires both builds together along with the example projects.
+
 ## Building locally
 
 ```bash
-cd preflight-core
+# Full build from repo root (builds everything including examples)
 ./gradlew build
-```
 
-This builds all modules (`preflight-spec`, `preflight-runtime`, `preflight-gradle-plugin`) and runs their tests.
+# Build preflight-spec standalone
+cd preflight-spec && ./gradlew build
 
-To also run the example project tests:
-
-```bash
-# From the repo root
-./gradlew build
+# Build preflight-core (resolves preflight-spec via composite build)
+cd preflight-core && ./gradlew build
 ```
 
 ## Installing to local Maven repo
@@ -51,16 +57,12 @@ The plugin itself injects the Orbital Maven repositories automatically, so no ot
 
 ## Bumping the version
 
-The version is set in one place: `preflight-core/build.gradle.kts`
+The version is set in **two places** (kept in sync manually):
 
-```kotlin
-allprojects {
-    group = "com.orbitalhq.preflight"
-    version = "0.1.0"  // <-- change this
-}
-```
+1. `preflight-core/build.gradle.kts` — `val PROJECT_VERSION = "0.1.0-SNAPSHOT"`
+2. `preflight-spec/build.gradle.kts` — `version = "0.1.0-SNAPSHOT"`
 
-All submodules inherit this version. The Gradle plugin also embeds it at build time via a generated `Versions.kt` constant.
+All preflight-core submodules inherit their version from `preflight-core/build.gradle.kts`. The Gradle plugin also embeds it at build time via a generated `Versions.kt` constant.
 
 ## Releasing
 
@@ -71,7 +73,7 @@ Releases are triggered by pushing a git tag. GitHub Actions handles building, si
 git checkout main
 git pull
 
-# 2. Bump the version in preflight-core/build.gradle.kts, commit
+# 2. Bump the version in both build.gradle.kts files, commit
 
 # 3. Tag the release
 git tag v0.1.0
@@ -84,9 +86,10 @@ git push origin v0.1.0
 The `release.yml` workflow then:
 1. Builds the project with JDK 21
 2. Signs artifacts with GPG
-3. Publishes the Gradle plugin to the **Gradle Plugin Portal**
-4. Publishes `preflight-runtime` and `preflight-spec` to the **Orbital Maven repository** (`s3://repo.orbitalhq.com/release`)
-5. Creates a GitHub Release with JARs and auto-generated notes
+3. Publishes `preflight-spec` to the **Orbital Maven repository**
+4. Publishes the Gradle plugin to the **Gradle Plugin Portal**
+5. Publishes `preflight-runtime` to the **Orbital Maven repository**
+6. Creates a GitHub Release with JARs and auto-generated notes
 
 ## Where artifacts are published
 

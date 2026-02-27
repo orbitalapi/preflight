@@ -7,7 +7,7 @@ val taxiVersion = "1.71.0-SNAPSHOT"
 val orbitalVersion = "0.38.0-M4" // Default version, can be overridden in consumer projects
 
 dependencies {
-    implementation(project(":preflight-spec"))
+    implementation("com.orbitalhq.preflight:preflight-spec")
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     implementation(platform("org.testcontainers:testcontainers-bom:1.19.3"))

@@ -52,6 +52,7 @@ tasks.shadowJar {
     archiveClassifier.set("")  // Make this the main JAR
     dependencies {
         include(project(":preflight-runtime"))
+        include(dependency("com.orbitalhq.preflight:preflight-spec"))
         include(dependency("org.taxilang:.*"))
         include(dependency("com.orbitalhq:.*"))
     }

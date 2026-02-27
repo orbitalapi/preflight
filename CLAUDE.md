@@ -8,11 +8,17 @@ Preflight is a Kotlin-based testing framework for Taxi/Orbital projects. It prov
 
 ### Core Components
 
+- **preflight-spec**: Standalone markdown test spec parser/writer (`preflight-spec/`)
+  - Has zero Orbital dependencies (only commonmark + jackson)
+  - Lives in its own top-level Gradle build so Orbital can depend on it without circular dependencies
+  - `TestSpecReader` / `TestSpecWriter`: Parse and generate markdown test specifications
+
 - **preflight-runtime**: Core testing DSL and execution engine (`preflight-core/preflight-runtime/`)
   - `OrbitalSpec`: Base test class extending Kotest's DescribeSpec with Taxi/Orbital-specific functionality
   - `PreflightExtension`: Kotest extension that handles Taxi compilation and Orbital service initialization
   - `StubHelper`: Utilities for stubbing external data sources in tests
   - Environment variable support and configuration management
+  - Depends on `preflight-spec` via Maven coordinates (resolved by composite build locally)
 
 - **preflight-gradle-plugin**: Gradle plugin for project integration (`preflight-core/preflight-gradle-plugin/`)
   - `PreflightPlugin`: Main plugin class that configures Kotlin JVM, dependencies, and test execution
@@ -20,8 +26,10 @@ Preflight is a Kotlin-based testing framework for Taxi/Orbital projects. It prov
 
 ### Project Structure
 
-The repository uses a composite build structure:
-- Root project includes core modules and example projects as composite builds
+The repository uses a two-build composite structure:
+- `preflight-spec/` — standalone Gradle build (no Orbital dependencies)
+- `preflight-core/` — main Gradle build containing runtime and plugin (depends on Orbital)
+- Root `settings.gradle.kts` wires both builds together with example projects via `includeBuild`
 - Example projects demonstrate usage patterns and serve as integration tests
 - Documentation site built with Next.js in `docs/` directory
 
@@ -119,4 +127,8 @@ preflight {
 
 ## Version Management
 
-Project version is managed centrally in `preflight-core/build.gradle.kts` (currently 0.0.4). The Gradle plugin uses code generation to embed version constants at build time via the `generateVersionConstants` task.
+Project version is set in two places (kept in sync manually):
+- `preflight-core/build.gradle.kts` — `val PROJECT_VERSION = "0.1.0-SNAPSHOT"` (inherited by runtime and plugin)
+- `preflight-spec/build.gradle.kts` — `version = "0.1.0-SNAPSHOT"`
+
+The Gradle plugin uses code generation to embed version constants at build time via the `generateVersionConstants` task.

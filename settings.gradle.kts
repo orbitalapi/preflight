@@ -1,6 +1,7 @@
 rootProject.name = "preflight"
 
-// Include the plugin build as a composite
+// Include preflight-spec first so it's available when preflight-core resolves
+includeBuild("preflight-spec")
 includeBuild("preflight-core")
 
 // Include example projects as composites too
