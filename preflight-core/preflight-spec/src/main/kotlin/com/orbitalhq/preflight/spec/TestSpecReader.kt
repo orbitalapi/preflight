@@ -44,6 +44,7 @@ object TestSpecReader {
         // Stub parsing state
         var currentStubLabel: String? = null
         var currentStubDirectives = mutableListOf<String>()
+        var currentStubParameters: String? = null
         var currentStubResponse: String? = null
         var currentStubMessages = mutableListOf<String>()
         var lastParagraphLabel: String? = null
@@ -88,12 +89,14 @@ object TestSpecReader {
                     operationName = operationName,
                     mode = mode,
                     response = if (mode == StubMode.REQUEST_RESPONSE) currentStubResponse else null,
-                    messages = if (mode == StubMode.STREAM) currentStubMessages.toList() else null
+                    messages = if (mode == StubMode.STREAM) currentStubMessages.toList() else null,
+                    parameters = currentStubParameters
                 )
             )
 
             currentStubLabel = null
             currentStubDirectives = mutableListOf()
+            currentStubParameters = null
             currentStubResponse = null
             currentStubMessages = mutableListOf()
             lastParagraphLabel = null
@@ -157,6 +160,7 @@ object TestSpecReader {
                             if (currentStubLabel != null) {
                                 val content = node.literal.trimEnd()
                                 when (lastParagraphLabel) {
+                                    "Request" -> currentStubParameters = content
                                     "Response" -> currentStubResponse = content
                                     "Message" -> currentStubMessages.add(content)
                                 }

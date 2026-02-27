@@ -44,6 +44,14 @@ object TestSpecWriter {
             }
             appendLine()
 
+            if (stub.parameters != null) {
+                appendLine("Request:")
+                appendLine("```json")
+                appendLine(stub.parameters)
+                appendLine("```")
+                appendLine()
+            }
+
             when (stub.mode) {
                 StubMode.REQUEST_RESPONSE -> {
                     if (stub.response != null) {

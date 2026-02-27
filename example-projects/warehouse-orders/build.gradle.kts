@@ -7,24 +7,24 @@ plugins {
 
 // OR specify a custom Orbital version
 preflight {
-   orbitalVersion = "0.38.0-SNAPSHOT"
+   orbitalVersion = "0.38.0-M4"
 }
 
 repositories {
    mavenLocal()
    mavenCentral()
-   maven {
-      name = "orbital"
-      url = URI("https://repo.orbitalhq.com/release")
-      mavenContent {
-         releasesOnly()
-      }
-   }
-   maven {
-      name = "orbital-snapshot"
-      url = URI("https://repo.orbitalhq.com/snapshot")
-      mavenContent {
-         snapshotsOnly()
-      }
-   }
+//   maven {
+//      name = "orbital"
+//      url = URI("https://repo.orbitalhq.com/release")
+//      mavenContent {
+//         releasesOnly()
+//      }
+//   }
+//   maven {
+//      name = "orbital-snapshot"
+//      url = URI("https://repo.orbitalhq.com/snapshot")
+//      mavenContent {
+//         snapshotsOnly()
+//      }
+//   }
 }

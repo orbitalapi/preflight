@@ -28,8 +28,8 @@ class TestSpecWriterTest : DescribeSpec({
         it("writes spec with multiple stubs") {
             val spec = minimalSpec().copy(
                 dataSources = listOf(
-                    Stub("Get Customer", "getCustomer", StubMode.REQUEST_RESPONSE, """{ "id": "1" }""", null),
-                    Stub("Get Orders", "getOrders", StubMode.REQUEST_RESPONSE, """[{ "orderId": "A" }]""", null)
+                    Stub("Get Customer", "getCustomer", StubMode.REQUEST_RESPONSE, parameters = null, response = """{ "id": "1" }""", messages = null),
+                    Stub("Get Orders", "getOrders", StubMode.REQUEST_RESPONSE, parameters = null, response = """[{ "orderId": "A" }]""", messages = null)
                 )
             )
             val output = TestSpecWriter.write(spec)
@@ -42,7 +42,7 @@ class TestSpecWriterTest : DescribeSpec({
         it("writes stream-mode stub with mode directive present") {
             val spec = minimalSpec().copy(
                 dataSources = listOf(
-                    Stub("Price Stream", "priceStream", StubMode.STREAM, null, listOf("""{ "price": 100 }"""))
+                    Stub("Price Stream", "priceStream", StubMode.STREAM, parameters = null, response = null, messages = listOf("""{ "price": 100 }"""))
                 )
             )
             val output = TestSpecWriter.write(spec)
@@ -106,12 +106,35 @@ class TestSpecWriterTest : DescribeSpec({
             output shouldContain "```json typedInstance"
         }
 
+        it("writes Request block before Response when parameters are present") {
+            val spec = minimalSpec().copy(
+                dataSources = listOf(
+                    Stub("Get Product", "getProduct", StubMode.REQUEST_RESPONSE,
+                        parameters = """{ "productId": "PROD-1001" }""",
+                        response = """{ "productId": "PROD-1001", "name": "Laptop" }""",
+                        messages = null)
+                )
+            )
+            val output = TestSpecWriter.write(spec)
+            output shouldContain "Request:"
+            output shouldContain "Response:"
+            val requestIdx = output.indexOf("Request:")
+            val responseIdx = output.indexOf("Response:")
+            assert(requestIdx < responseIdx) { "Request should appear before Response" }
+        }
+
+        it("omits Request block when parameters are null") {
+            val spec = minimalSpec()
+            val output = TestSpecWriter.write(spec)
+            output shouldNotContain "Request:"
+        }
+
         it("writes stream stub with multiple messages in order") {
             val spec = minimalSpec().copy(
                 dataSources = listOf(
                     Stub(
-                        "Prices", "priceStream", StubMode.STREAM, null,
-                        listOf("""{ "price": 100 }""", """{ "price": 200 }""", """{ "price": 300 }""")
+                        "Prices", "priceStream", StubMode.STREAM, parameters = null, response = null,
+                        messages = listOf("""{ "price": 100 }""", """{ "price": 200 }""", """{ "price": 300 }""")
                     )
                 )
             )
@@ -130,7 +153,7 @@ class TestSpecWriterTest : DescribeSpec({
         it("writes stream stub with single message") {
             val spec = minimalSpec().copy(
                 dataSources = listOf(
-                    Stub("Stream", "myStream", StubMode.STREAM, null, listOf("""{ "value": 1 }"""))
+                    Stub("Stream", "myStream", StubMode.STREAM, parameters = null, response = null, messages = listOf("""{ "value": 1 }"""))
                 )
             )
             val output = TestSpecWriter.write(spec)
@@ -146,7 +169,7 @@ private fun minimalSpec() = TestSpec(
     description = null,
     query = "find { Customer }",
     dataSources = listOf(
-        Stub("Get Customer", "getCustomer", StubMode.REQUEST_RESPONSE, """{ "id": "1" }""", null)
+        Stub("Get Customer", "getCustomer", StubMode.REQUEST_RESPONSE, parameters = null, response = """{ "id": "1" }""", messages = null)
     ),
     expectedResult = """{ "id": "1" }""",
     flow = null

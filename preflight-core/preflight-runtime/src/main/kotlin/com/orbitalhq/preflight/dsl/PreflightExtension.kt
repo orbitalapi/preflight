@@ -327,39 +327,40 @@ class PreflightExtension(
         val context = PreflightTestCaseContext(testCase)
         return withContext(context) {
             val testResult = execute(testCase)
-            val capturedScenario = capturedScenarios[testCase]
-            if (testResult.isFailure && capturedScenario != null) {
-                val failure = testResult as TestResult.Failure
-                val cause = failure.cause
-                if (cause is AssertionFailedError) {
-                    val originalError = failure.cause as AssertionFailedError
-                    val (_, playgroundLink) = PlaygroundScenarioFactory.buildPlaygroundScenario(
-                        capturedScenario,
-                        sourcePackage,
-                        schema,
-                        originalError,
-                        testCase
-                    )
-                    val errorMessageWithPlaygroundLink = """${originalError.message}
-                        |
-                        |This error is explorable in Taxi Playground at the following link: $playgroundLink
-                    """.trimMargin()
-                    val failureWithPlaygroundLink = failure.copy(
-                        cause = AssertionFailedError(
-                            message = errorMessageWithPlaygroundLink,
-                            cause = originalError.cause,
-                            expectedValue = originalError.expectedValue,
-                            actualValue = originalError.actualValue,
-                        )
-                    )
-                    failureWithPlaygroundLink
-                } else {
-                    testResult
-                }
-
-            } else {
-                testResult
-            }
+            testResult
+//            val capturedScenario = capturedScenarios[testCase]
+//            if (testResult.isFailure && capturedScenario != null) {
+//                val failure = testResult as TestResult.Failure
+//                val cause = failure.cause
+//                if (cause is AssertionFailedError) {
+//                    val originalError = failure.cause as AssertionFailedError
+////                    val (_, playgroundLink) = PlaygroundScenarioFactory.buildPlaygroundScenario(
+////                        capturedScenario,
+////                        sourcePackage,
+////                        schema,
+////                        originalError,
+////                        testCase
+////                    )
+////                    val errorMessageWithPlaygroundLink = """${originalError.message}
+////                        |
+////                        |This error is explorable in Taxi Playground at the following link: $playgroundLink
+////                    """.trimMargin()
+//                    val failureWithPlaygroundLink = failure.copy(
+//                        cause = AssertionFailedError(
+//                            message = originalError.message,
+//                            cause = originalError.cause,
+//                            expectedValue = originalError.expectedValue,
+//                            actualValue = originalError.actualValue,
+//                        )
+//                    )
+//                    failureWithPlaygroundLink
+//                } else {
+//                    testResult
+//                }
+//
+//            } else {
+//                testResult
+//            }
 
         }
     }

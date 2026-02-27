@@ -14,7 +14,7 @@ class RoundTripTest : DescribeSpec({
                 description = null,
                 query = "find { Customer }",
                 dataSources = listOf(
-                    Stub("Get Customer", "getCustomer", StubMode.REQUEST_RESPONSE, """{ "id": "1" }""", null)
+                    Stub("Get Customer", "getCustomer", StubMode.REQUEST_RESPONSE, parameters = null, response = """{ "id": "1" }""", messages = null)
                 ),
                 expectedResult = """{ "id": "1" }""",
                 flow = null
@@ -30,8 +30,8 @@ class RoundTripTest : DescribeSpec({
                 description = "Tests with multiple data sources.",
                 query = "find { Customer } with { orders: Order[] }",
                 dataSources = listOf(
-                    Stub("Fetch Customer", "getCustomer", StubMode.REQUEST_RESPONSE, """{ "id": "12345", "name": "Alice" }""", null),
-                    Stub("Fetch Orders", "getOrders", StubMode.REQUEST_RESPONSE, """[{ "orderId": "ORD-1" }]""", null)
+                    Stub("Fetch Customer", "getCustomer", StubMode.REQUEST_RESPONSE, parameters = null, response = """{ "id": "12345", "name": "Alice" }""", messages = null),
+                    Stub("Fetch Orders", "getOrders", StubMode.REQUEST_RESPONSE, parameters = null, response = """[{ "orderId": "ORD-1" }]""", messages = null)
                 ),
                 expectedResult = """{ "customer": "Alice", "orders": [{ "orderId": "ORD-1" }] }""",
                 flow = null
@@ -48,8 +48,8 @@ class RoundTripTest : DescribeSpec({
                 query = "stream { Prices }",
                 dataSources = listOf(
                     Stub(
-                        "Price Updates", "priceStream", StubMode.STREAM, null,
-                        listOf("""{ "price": 100 }""", """{ "price": 200 }""", """{ "price": 300 }""")
+                        "Price Updates", "priceStream", StubMode.STREAM, parameters = null, response = null,
+                        messages = listOf("""{ "price": 100 }""", """{ "price": 200 }""", """{ "price": 300 }""")
                     )
                 ),
                 expectedResult = """[{ "price": 100 }, { "price": 200 }, { "price": 300 }]""",
@@ -66,7 +66,7 @@ class RoundTripTest : DescribeSpec({
                 description = "A comprehensive test case.",
                 query = "find { Customer }",
                 dataSources = listOf(
-                    Stub("Get Customer", "getCustomer", StubMode.REQUEST_RESPONSE, """{ "id": "1" }""", null)
+                    Stub("Get Customer", "getCustomer", StubMode.REQUEST_RESPONSE, parameters = null, response = """{ "id": "1" }""", messages = null)
                 ),
                 expectedResult = """{ "id": "1" }""",
                 flow = "sequenceDiagram\n    Q->>S: getCustomer\n    S-->>Q: Customer"
@@ -82,7 +82,7 @@ class RoundTripTest : DescribeSpec({
                 description = null,
                 query = "find { Customer }",
                 dataSources = listOf(
-                    Stub("Get Customer", "getCustomer", StubMode.REQUEST_RESPONSE, """{ "id": "1" }""", null)
+                    Stub("Get Customer", "getCustomer", StubMode.REQUEST_RESPONSE, parameters = null, response = """{ "id": "1" }""", messages = null)
                 ),
                 expectedResult = """{ "type": "Customer", "value": { "id": "1" } }""",
                 resultFormat = ResultFormat.TYPED_INSTANCE,
@@ -99,7 +99,7 @@ class RoundTripTest : DescribeSpec({
                 description = null,
                 query = "find { Customer }",
                 dataSources = listOf(
-                    Stub("Get Customer", "getCustomer", StubMode.REQUEST_RESPONSE, """{ "id": "1" }""", null)
+                    Stub("Get Customer", "getCustomer", StubMode.REQUEST_RESPONSE, parameters = null, response = """{ "id": "1" }""", messages = null)
                 ),
                 expectedResult = """{ "id": "1" }""",
                 resultFormat = ResultFormat.JSON,
@@ -116,11 +116,30 @@ class RoundTripTest : DescribeSpec({
                 description = null,
                 query = "find { Dashboard }",
                 dataSources = listOf(
-                    Stub("Static Data", "getConfig", StubMode.REQUEST_RESPONSE, """{ "theme": "dark" }""", null),
-                    Stub("Live Prices", "priceStream", StubMode.STREAM, null, listOf("""{ "price": 42 }""")),
-                    Stub("User Profile", "getUser", StubMode.REQUEST_RESPONSE, """{ "name": "Bob" }""", null)
+                    Stub("Static Data", "getConfig", StubMode.REQUEST_RESPONSE, parameters = null, response = """{ "theme": "dark" }""", messages = null),
+                    Stub("Live Prices", "priceStream", StubMode.STREAM, parameters = null, response = null, messages = listOf("""{ "price": 42 }""")),
+                    Stub("User Profile", "getUser", StubMode.REQUEST_RESPONSE, parameters = null, response = """{ "name": "Bob" }""", messages = null)
                 ),
                 expectedResult = """{ "theme": "dark", "price": 42, "name": "Bob" }""",
+                flow = null
+            )
+            val roundTripped = TestSpecReader.read(TestSpecWriter.write(original))
+            roundTripped shouldBe original
+        }
+
+        it("round-trips a spec with stub parameters") {
+            val original = TestSpec(
+                specVersion = "0.1",
+                name = "Parameterised Test",
+                description = null,
+                query = "find { Product }",
+                dataSources = listOf(
+                    Stub("Get Product", "getProduct", StubMode.REQUEST_RESPONSE,
+                        parameters = """{ "productId": "PROD-1001" }""",
+                        response = """{ "productId": "PROD-1001", "name": "Laptop" }""",
+                        messages = null)
+                ),
+                expectedResult = """{ "productId": "PROD-1001", "name": "Laptop" }""",
                 flow = null
             )
             val roundTripped = TestSpecReader.read(TestSpecWriter.write(original))

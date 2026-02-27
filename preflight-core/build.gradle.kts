@@ -9,6 +9,7 @@ plugins {
     `maven-publish`
 }
 
+val PROJECT_VERSION = "0.1.0-SNAPSHOT"
 
 
 tasks.register("publishAll") {
@@ -26,7 +27,7 @@ tasks.register("publishAllMavenLocal") {
 
 allprojects {
     group = "com.orbitalhq.preflight"
-    version = "0.1.0-M2"
+    version = PROJECT_VERSION
 
     repositories {
         mavenCentral()

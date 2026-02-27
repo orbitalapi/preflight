@@ -394,6 +394,82 @@ class TestSpecReaderTest : DescribeSpec({
             spec.query shouldBe "find { Foo }"
         }
 
+        it("parses Request block as parameters") {
+            val markdown = """
+                |---
+                |spec-version: 0.1
+                |---
+                |
+                |# Test
+                |
+                |## Query
+                |
+                |```taxiql
+                |find { Foo }
+                |```
+                |
+                |## Data Sources
+                |
+                |### Get Product
+                |<!-- operation: getProduct -->
+                |
+                |Request:
+                |```json
+                |{ "productId": "PROD-1001" }
+                |```
+                |
+                |Response:
+                |```json
+                |{ "productId": "PROD-1001", "name": "Laptop" }
+                |```
+                |
+                |## Expected Result
+                |
+                |```json
+                |{ "productId": "PROD-1001", "name": "Laptop" }
+                |```
+            """.trimMargin()
+
+            val spec = TestSpecReader.read(markdown)
+            spec.dataSources[0].parameters shouldBe """{ "productId": "PROD-1001" }"""
+            spec.dataSources[0].response shouldBe """{ "productId": "PROD-1001", "name": "Laptop" }"""
+        }
+
+        it("parses stub without Request block as null parameters") {
+            val markdown = """
+                |---
+                |spec-version: 0.1
+                |---
+                |
+                |# Test
+                |
+                |## Query
+                |
+                |```taxiql
+                |find { Foo }
+                |```
+                |
+                |## Data Sources
+                |
+                |### Stub
+                |<!-- operation: getFoo -->
+                |
+                |Response:
+                |```json
+                |{}
+                |```
+                |
+                |## Expected Result
+                |
+                |```json
+                |{}
+                |```
+            """.trimMargin()
+
+            val spec = TestSpecReader.read(markdown)
+            spec.dataSources[0].parameters.shouldBeNull()
+        }
+
         it("parses Expected Results with no qualifier as JSON format") {
             val markdown = """
                 |---

@@ -20,6 +20,7 @@ data class Stub(
     val label: String,
     val operationName: String,
     val mode: StubMode,
+    val parameters: String?,
     val response: String?,
     val messages: List<String>?
 )
