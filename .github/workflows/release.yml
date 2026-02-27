@@ -32,6 +32,9 @@ jobs:
 
     - name: Publish preflight-spec
       run: cd preflight-spec && ./gradlew build publishMavenPublicationToOrbitalRepository
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
     - name: Build and publish preflight-core
       run: ./gradlew build :preflight-core:preflight-gradle-plugin:publishPlugins :preflight-core:preflight-runtime:publishMavenPublicationToOrbitalRepository
