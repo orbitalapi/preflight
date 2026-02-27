@@ -1,11 +1,16 @@
 package com.orbitalhq.preflight.dsl
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.orbitalhq.models.Provided
+import com.orbitalhq.models.TypedInstance
+import com.orbitalhq.models.json.right
 import com.orbitalhq.preflight.spec.StubMode
 import com.orbitalhq.preflight.spec.TestSpec
 import com.orbitalhq.preflight.spec.TestSpecReader
+import com.orbitalhq.schemas.fqn
 import com.orbitalhq.stubbing.StubService
 import io.kotest.matchers.shouldBe
+import kotlinx.coroutines.flow.flowOf
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -48,9 +53,9 @@ private fun OrbitalSpec.registerSpec(
                     }
                 }
                 StubMode.STREAM -> {
-                    val emitter = stubService.addResponseEmitter(stub.operationName)
-                    stub.messages?.forEach { message ->
-                        emitter.next(message)
+                    stubService.addResponseFlow(stub.operationName) { _,_ ->
+                        val messages = messagesAsTypedInstanceResponses(stub, stubService.schema!!)
+                        flowOf(*messages.toTypedArray())
                     }
                 }
             }
