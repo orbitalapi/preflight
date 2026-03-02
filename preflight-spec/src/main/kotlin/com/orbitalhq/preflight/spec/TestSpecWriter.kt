@@ -94,16 +94,6 @@ object TestSpecWriter {
         appendLine("```$infoString")
         appendLine(spec.expectedResult)
         appendLine("```")
-
-        // Flow section (optional)
-        if (spec.flow != null) {
-            appendLine()
-            appendLine("## Flow")
-            appendLine()
-            appendLine("```mermaid")
-            appendLine(spec.flow)
-            appendLine("```")
-        }
     }
 
     fun writeFile(spec: TestSpec, path: Path) {

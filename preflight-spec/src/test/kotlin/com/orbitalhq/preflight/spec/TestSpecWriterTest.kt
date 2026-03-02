@@ -94,21 +94,6 @@ class TestSpecWriterTest : DescribeSpec({
             between.all { it.isBlank() }
         }
 
-        it("writes spec with flow section") {
-            val spec = minimalSpec().copy(flow = "sequenceDiagram\n    Q->>S: getFoo")
-            val output = TestSpecWriter.write(spec)
-            output shouldContain "## Flow"
-            output shouldContain "```mermaid"
-            output shouldContain "sequenceDiagram"
-        }
-
-        it("writes spec without flow section") {
-            val spec = minimalSpec().copy(flow = null)
-            val output = TestSpecWriter.write(spec)
-            output shouldNotContain "## Flow"
-            output shouldNotContain "```mermaid"
-        }
-
         it("writes plain json info string for JSON format") {
             val spec = minimalSpec()
             val output = TestSpecWriter.write(spec)
@@ -191,6 +176,5 @@ private fun minimalSpec() = TestSpec(
     dataSources = listOf(
         Stub("Get Customer", "getCustomer", StubMode.REQUEST_RESPONSE, parameters = null, response = """{ "id": "1" }""", messages = null)
     ),
-    expectedResult = """{ "id": "1" }""",
-    flow = null
+    expectedResult = """{ "id": "1" }"""
 )

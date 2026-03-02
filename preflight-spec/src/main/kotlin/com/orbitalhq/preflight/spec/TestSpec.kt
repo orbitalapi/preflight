@@ -8,7 +8,6 @@ data class TestSpec(
     val dataSources: List<Stub>,
     val expectedResult: String,
     val resultFormat: ResultFormat = ResultFormat.JSON,
-    val flow: String?,
     val specVersion: String = "0.1",
 )
 
