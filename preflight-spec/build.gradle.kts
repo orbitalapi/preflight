@@ -17,6 +17,7 @@ kotlin {
 
 dependencies {
     implementation(kotlin("stdlib"))
+    implementation(kotlin("reflect"))
     implementation("org.commonmark:commonmark:0.24.0")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.17.2")
 
