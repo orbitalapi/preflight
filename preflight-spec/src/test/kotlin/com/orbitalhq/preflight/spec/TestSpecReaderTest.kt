@@ -155,6 +155,86 @@ class TestSpecReaderTest : DescribeSpec({
             spec.description shouldBe "This is the description.\n\nIt spans multiple paragraphs."
         }
 
+        it("parses Schema section when present") {
+            val markdown = """
+                |---
+                |spec-version: 0.1
+                |---
+                |
+                |# Test With Schema
+                |
+                |## Schema
+                |
+                |```taxi
+                |model Customer {
+                |    id: CustomerId inherits String
+                |    name: CustomerName inherits String
+                |}
+                |```
+                |
+                |## Query
+                |
+                |```taxiql
+                |find { Customer }
+                |```
+                |
+                |## Data Sources
+                |
+                |### Stub
+                |<!-- operation: getFoo -->
+                |
+                |Response:
+                |```json
+                |{}
+                |```
+                |
+                |## Expected Result
+                |
+                |```json
+                |{}
+                |```
+            """.trimMargin()
+
+            val spec = TestSpecReader.read(markdown)
+            spec.schema shouldContain "model Customer"
+            spec.schema shouldContain "id: CustomerId inherits String"
+        }
+
+        it("parses spec without Schema section as null") {
+            val markdown = """
+                |---
+                |spec-version: 0.1
+                |---
+                |
+                |# Test
+                |
+                |## Query
+                |
+                |```taxiql
+                |find { Foo }
+                |```
+                |
+                |## Data Sources
+                |
+                |### Stub
+                |<!-- operation: getFoo -->
+                |
+                |Response:
+                |```json
+                |{}
+                |```
+                |
+                |## Expected Result
+                |
+                |```json
+                |{}
+                |```
+            """.trimMargin()
+
+            val spec = TestSpecReader.read(markdown)
+            spec.schema.shouldBeNull()
+        }
+
         it("parses Flow section when present") {
             val markdown = """
                 |---

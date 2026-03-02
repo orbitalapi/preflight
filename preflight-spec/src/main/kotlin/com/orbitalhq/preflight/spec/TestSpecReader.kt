@@ -31,6 +31,7 @@ object TestSpecReader {
 
         var name: String? = null
         var description: String? = null
+        var schema: String? = null
         var query: String? = null
         val dataSources = mutableListOf<Stub>()
         var expectedResult: String? = null
@@ -153,6 +154,9 @@ object TestSpecReader {
                 }
                 is FencedCodeBlock -> {
                     when (currentH2) {
+                        "Schema" -> {
+                            schema = node.literal.trimEnd()
+                        }
                         "Query" -> {
                             query = node.literal.trimEnd()
                         }
@@ -225,6 +229,7 @@ object TestSpecReader {
             specVersion = specVersion,
             name = name,
             description = description,
+            schema = schema,
             query = query,
             dataSources = dataSources,
             expectedResult = expectedResult,

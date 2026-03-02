@@ -12,6 +12,7 @@ class RoundTripTest : DescribeSpec({
                 specVersion = "0.1",
                 name = "Minimal Test",
                 description = null,
+                schema = null,
                 query = "find { Customer }",
                 dataSources = listOf(
                     Stub("Get Customer", "getCustomer", StubMode.REQUEST_RESPONSE, parameters = null, response = """{ "id": "1" }""", messages = null)
@@ -28,6 +29,7 @@ class RoundTripTest : DescribeSpec({
                 specVersion = "0.1",
                 name = "Multi Stub Test",
                 description = "Tests with multiple data sources.",
+                schema = null,
                 query = "find { Customer } with { orders: Order[] }",
                 dataSources = listOf(
                     Stub("Fetch Customer", "getCustomer", StubMode.REQUEST_RESPONSE, parameters = null, response = """{ "id": "12345", "name": "Alice" }""", messages = null),
@@ -45,6 +47,7 @@ class RoundTripTest : DescribeSpec({
                 specVersion = "0.1",
                 name = "Stream Test",
                 description = null,
+                schema = null,
                 query = "stream { Prices }",
                 dataSources = listOf(
                     Stub(
@@ -64,6 +67,7 @@ class RoundTripTest : DescribeSpec({
                 specVersion = "0.1",
                 name = "Full Test",
                 description = "A comprehensive test case.",
+                schema = null,
                 query = "find { Customer }",
                 dataSources = listOf(
                     Stub("Get Customer", "getCustomer", StubMode.REQUEST_RESPONSE, parameters = null, response = """{ "id": "1" }""", messages = null)
@@ -75,11 +79,29 @@ class RoundTripTest : DescribeSpec({
             roundTripped shouldBe original
         }
 
+        it("round-trips a spec with schema") {
+            val original = TestSpec(
+                specVersion = "0.1",
+                name = "Schema Test",
+                description = "A test with inline schema.",
+                schema = "model Customer {\n    id: CustomerId inherits String\n    name: CustomerName inherits String\n}",
+                query = "find { Customer }",
+                dataSources = listOf(
+                    Stub("Get Customer", "getCustomer", StubMode.REQUEST_RESPONSE, parameters = null, response = """{ "id": "1", "name": "Alice" }""", messages = null)
+                ),
+                expectedResult = """{ "id": "1", "name": "Alice" }""",
+                flow = null
+            )
+            val roundTripped = TestSpecReader.read(TestSpecWriter.write(original))
+            roundTripped shouldBe original
+        }
+
         it("round-trips a spec with TYPED_INSTANCE result format") {
             val original = TestSpec(
                 specVersion = "0.1",
                 name = "TypedInstance Test",
                 description = null,
+                schema = null,
                 query = "find { Customer }",
                 dataSources = listOf(
                     Stub("Get Customer", "getCustomer", StubMode.REQUEST_RESPONSE, parameters = null, response = """{ "id": "1" }""", messages = null)
@@ -97,6 +119,7 @@ class RoundTripTest : DescribeSpec({
                 specVersion = "0.1",
                 name = "Plain JSON Test",
                 description = null,
+                schema = null,
                 query = "find { Customer }",
                 dataSources = listOf(
                     Stub("Get Customer", "getCustomer", StubMode.REQUEST_RESPONSE, parameters = null, response = """{ "id": "1" }""", messages = null)
@@ -114,6 +137,7 @@ class RoundTripTest : DescribeSpec({
                 specVersion = "0.1",
                 name = "Mixed Modes",
                 description = null,
+                schema = null,
                 query = "find { Dashboard }",
                 dataSources = listOf(
                     Stub("Static Data", "getConfig", StubMode.REQUEST_RESPONSE, parameters = null, response = """{ "theme": "dark" }""", messages = null),
@@ -132,6 +156,7 @@ class RoundTripTest : DescribeSpec({
                 specVersion = "0.1",
                 name = "Parameterised Test",
                 description = null,
+                schema = null,
                 query = "find { Product }",
                 dataSources = listOf(
                     Stub("Get Product", "getProduct", StubMode.REQUEST_RESPONSE,

@@ -3,6 +3,7 @@ package com.orbitalhq.preflight.spec
 data class TestSpec(
     val name: String,
     val description: String?,
+    val schema: String?,
     val query: String,
     val dataSources: List<Stub>,
     val expectedResult: String,

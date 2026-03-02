@@ -22,6 +22,16 @@ object TestSpecWriter {
             appendLine()
         }
 
+        // Schema section (optional)
+        if (spec.schema != null) {
+            appendLine("## Schema")
+            appendLine()
+            appendLine("```taxi")
+            appendLine(spec.schema)
+            appendLine("```")
+            appendLine()
+        }
+
         // Query section
         appendLine("## Query")
         appendLine()
