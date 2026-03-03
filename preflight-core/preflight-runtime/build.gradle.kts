@@ -4,7 +4,7 @@ plugins {
 }
 
 val taxiVersion = "1.71.0-SNAPSHOT"
-val orbitalVersion = "0.38.0-M4" // Default version, can be overridden in consumer projects
+val orbitalVersion = "0.38.0-SNAPSHOT" // Default version, can be overridden in consumer projects
 
 dependencies {
     implementation("com.orbitalhq.preflight:preflight-spec")

@@ -57,6 +57,25 @@ class TestSpecWriterTest : DescribeSpec({
             output shouldNotContain "mode:"
         }
 
+        it("writes spec with schema section") {
+            val spec = minimalSpec().copy(schema = "model Customer {\n    id: CustomerId inherits String\n}")
+            val output = TestSpecWriter.write(spec)
+            output shouldContain "## Schema"
+            output shouldContain "```taxi"
+            output shouldContain "model Customer"
+            // Schema should appear before Query
+            val schemaIdx = output.indexOf("## Schema")
+            val queryIdx = output.indexOf("## Query")
+            assert(schemaIdx < queryIdx) { "Schema should appear before Query" }
+        }
+
+        it("writes spec without schema section") {
+            val spec = minimalSpec().copy(schema = null)
+            val output = TestSpecWriter.write(spec)
+            output shouldNotContain "## Schema"
+            output shouldNotContain "```taxi\n"
+        }
+
         it("writes spec with description") {
             val spec = minimalSpec().copy(description = "This test verifies customer lookup.")
             val output = TestSpecWriter.write(spec)
@@ -73,21 +92,6 @@ class TestSpecWriterTest : DescribeSpec({
             // Between H1 and Query, there should only be blank lines
             val between = lines.subList(h1Index + 1, queryIndex)
             between.all { it.isBlank() }
-        }
-
-        it("writes spec with flow section") {
-            val spec = minimalSpec().copy(flow = "sequenceDiagram\n    Q->>S: getFoo")
-            val output = TestSpecWriter.write(spec)
-            output shouldContain "## Flow"
-            output shouldContain "```mermaid"
-            output shouldContain "sequenceDiagram"
-        }
-
-        it("writes spec without flow section") {
-            val spec = minimalSpec().copy(flow = null)
-            val output = TestSpecWriter.write(spec)
-            output shouldNotContain "## Flow"
-            output shouldNotContain "```mermaid"
         }
 
         it("writes plain json info string for JSON format") {
@@ -167,10 +171,10 @@ private fun minimalSpec() = TestSpec(
     specVersion = "0.1",
     name = "Minimal Test",
     description = null,
+    schema = null,
     query = "find { Customer }",
     dataSources = listOf(
         Stub("Get Customer", "getCustomer", StubMode.REQUEST_RESPONSE, parameters = null, response = """{ "id": "1" }""", messages = null)
     ),
-    expectedResult = """{ "id": "1" }""",
-    flow = null
+    expectedResult = """{ "id": "1" }"""
 )

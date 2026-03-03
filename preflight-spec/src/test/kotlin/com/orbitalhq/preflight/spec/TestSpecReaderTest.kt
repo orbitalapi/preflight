@@ -4,7 +4,6 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldBeNull
-import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 
@@ -54,7 +53,6 @@ class TestSpecReaderTest : DescribeSpec({
             spec.dataSources[0].mode shouldBe StubMode.REQUEST_RESPONSE
             spec.dataSources[0].response shouldBe """{ "id": "1" }"""
             spec.expectedResult shouldBe """{ "id": "1" }"""
-            spec.flow.shouldBeNull()
         }
 
         it("parses a full spec with multiple stubs") {
@@ -96,14 +94,6 @@ class TestSpecReaderTest : DescribeSpec({
                 |```json
                 |{ "customer": { "name": "Alice Smith" }, "orders": [{ "id": "ORD-99" }] }
                 |```
-                |
-                |## Flow
-                |
-                |```mermaid
-                |sequenceDiagram
-                |    participant Q as Query Engine
-                |    Q->>C: getCustomer
-                |```
             """.trimMargin()
 
             val spec = TestSpecReader.read(markdown)
@@ -112,8 +102,6 @@ class TestSpecReaderTest : DescribeSpec({
             spec.dataSources shouldHaveSize 2
             spec.dataSources[0].operationName shouldBe "getCustomer"
             spec.dataSources[1].operationName shouldBe "getOrdersForCustomer"
-            spec.flow.shouldNotBeNull()
-            spec.flow shouldContain "sequenceDiagram"
         }
 
         it("parses description prose between H1 and first H2") {
@@ -155,13 +143,58 @@ class TestSpecReaderTest : DescribeSpec({
             spec.description shouldBe "This is the description.\n\nIt spans multiple paragraphs."
         }
 
-        it("parses Flow section when present") {
+        it("parses Schema section when present") {
             val markdown = """
                 |---
                 |spec-version: 0.1
                 |---
                 |
-                |# Test With Flow
+                |# Test With Schema
+                |
+                |## Schema
+                |
+                |```taxi
+                |model Customer {
+                |    id: CustomerId inherits String
+                |    name: CustomerName inherits String
+                |}
+                |```
+                |
+                |## Query
+                |
+                |```taxiql
+                |find { Customer }
+                |```
+                |
+                |## Data Sources
+                |
+                |### Stub
+                |<!-- operation: getFoo -->
+                |
+                |Response:
+                |```json
+                |{}
+                |```
+                |
+                |## Expected Result
+                |
+                |```json
+                |{}
+                |```
+            """.trimMargin()
+
+            val spec = TestSpecReader.read(markdown)
+            spec.schema shouldContain "model Customer"
+            spec.schema shouldContain "id: CustomerId inherits String"
+        }
+
+        it("parses spec without Schema section as null") {
+            val markdown = """
+                |---
+                |spec-version: 0.1
+                |---
+                |
+                |# Test
                 |
                 |## Query
                 |
@@ -184,18 +217,10 @@ class TestSpecReaderTest : DescribeSpec({
                 |```json
                 |{}
                 |```
-                |
-                |## Flow
-                |
-                |```mermaid
-                |sequenceDiagram
-                |    Q->>S: getFoo
-                |```
             """.trimMargin()
 
             val spec = TestSpecReader.read(markdown)
-            spec.flow.shouldNotBeNull()
-            spec.flow shouldContain "sequenceDiagram"
+            spec.schema.shouldBeNull()
         }
 
         it("parses stream-mode stub with multiple messages") {

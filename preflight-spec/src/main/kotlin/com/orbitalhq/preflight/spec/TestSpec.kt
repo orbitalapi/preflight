@@ -9,7 +9,6 @@ data class TestSpec(
     @Section("Data Sources") val dataSources: List<Stub>,
     @Section("Expected Result") @CodeBlock("json", qualifierProperty = "resultFormat") val expectedResult: String,
     val resultFormat: ResultFormat = ResultFormat.JSON,
-    @Section("Flow") @CodeBlock("mermaid") val flow: String?,
 )
 
 enum class ResultFormat(override val qualifier: String?) : CodeBlockQualifier {
