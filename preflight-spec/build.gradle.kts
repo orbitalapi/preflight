@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.orbitalhq.preflight"
-version = "0.1.0-M2"
+version = "0.1.1"
 
 repositories {
     mavenCentral()
