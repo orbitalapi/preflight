@@ -9,7 +9,7 @@ plugins {
     `maven-publish`
 }
 
-val PROJECT_VERSION = "0.2.0-SNAPSHOT"
+val PROJECT_VERSION = file("../version.txt").readText().trim()
 
 
 tasks.register("publishAll") {

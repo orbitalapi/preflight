@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.orbitalhq.preflight"
-version = "0.2.0-SNAPSHOT"
+version = file("../version.txt").readText().trim()
 
 repositories {
     mavenCentral()

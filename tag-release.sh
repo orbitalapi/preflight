@@ -41,7 +41,7 @@ VERSION="${1:-}"
 if [ -z "$VERSION" ]; then
   if [ "$VERSION_ONLY" = true ]; then
     # No version provided with -v: print the current version and exit
-    CURRENT_VERSION=$(grep -oP '^val PROJECT_VERSION = "\K[^"]+' preflight-core/build.gradle.kts)
+    CURRENT_VERSION=$(cat version.txt | tr -d '[:space:]')
     echo "$CURRENT_VERSION"
     exit 0
   fi
@@ -56,14 +56,10 @@ if [ "$VERSION_ONLY" = false ] && [[ "$VERSION" == *SNAPSHOT* ]]; then
   exit 1
 fi
 
-# Update preflight-core/build.gradle.kts
-sed -i "s/^val PROJECT_VERSION = \".*\"/val PROJECT_VERSION = \"$VERSION\"/" preflight-core/build.gradle.kts
+# Update version.txt (single source of truth)
+echo "$VERSION" > version.txt
 
-# Update preflight-spec/build.gradle.kts
-sed -i "s/^version = \".*\"/version = \"$VERSION\"/" preflight-spec/build.gradle.kts
-
-echo "Updated preflight-core/build.gradle.kts"
-echo "Updated preflight-spec/build.gradle.kts"
+echo "Updated version.txt"
 
 if [ "$VERSION_ONLY" = true ]; then
   echo ""
@@ -72,7 +68,7 @@ if [ "$VERSION_ONLY" = true ]; then
 fi
 
 # Ensure working tree is clean (aside from the version files we just changed)
-if [ -n "$(git status --porcelain -- ':!preflight-core/build.gradle.kts' ':!preflight-spec/build.gradle.kts')" ]; then
+if [ -n "$(git status --porcelain -- ':!version.txt')" ]; then
   echo "Error: Working tree is not clean. Commit or stash changes first."
   exit 1
 fi
@@ -90,7 +86,7 @@ fi
 
 echo "Releasing version $VERSION..."
 
-git add preflight-core/build.gradle.kts preflight-spec/build.gradle.kts
+git add version.txt
 git commit -m "Release $VERSION"
 
 if [ "$FORCE" = true ]; then

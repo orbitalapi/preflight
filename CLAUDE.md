@@ -127,8 +127,4 @@ preflight {
 
 ## Version Management
 
-Project version is set in two places (kept in sync manually):
-- `preflight-core/build.gradle.kts` — `val PROJECT_VERSION = "0.1.0-SNAPSHOT"` (inherited by runtime and plugin)
-- `preflight-spec/build.gradle.kts` — `version = "0.1.0-SNAPSHOT"`
-
-The Gradle plugin uses code generation to embed version constants at build time via the `generateVersionConstants` task.
+Project version is set in a single file at the repo root: `version.txt`. Both `preflight-spec` and `preflight-core` builds read from it. The Gradle plugin uses code generation to embed version constants at build time via the `generateVersionConstants` task.
