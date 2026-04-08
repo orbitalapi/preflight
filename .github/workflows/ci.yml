@@ -3,28 +3,30 @@ name: CI
 on:
   push:
     branches: [ main, develop ]
+    tags-ignore:
+      - 'v*'
   pull_request:
     branches: [ main ]
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up JDK 21
       uses: actions/setup-java@v4
       with:
         java-version: '21'
         distribution: 'temurin'
-    
+
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
-    
+
     - name: Build with Gradle
       run: ./gradlew build
-    
+
     - name: Upload test reports
       uses: actions/upload-artifact@v4
       if: always()
@@ -33,3 +35,32 @@ jobs:
         path: |
           **/build/reports/tests/
           **/build/test-results/
+
+  publish-snapshot:
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v3
+
+    - name: Publish preflight-spec snapshot
+      run: ./gradlew :preflight-spec:publishMavenPublicationToOrbitalRepository --info
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+    - name: Publish preflight-runtime snapshot
+      run: ./gradlew :preflight-core:preflight-runtime:publishMavenPublicationToOrbitalRepository --info
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
