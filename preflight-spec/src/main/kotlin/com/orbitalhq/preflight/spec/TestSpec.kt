@@ -1,28 +1,28 @@
 package com.orbitalhq.preflight.spec
 
+@MarkdownSpec
 data class TestSpec(
-    val name: String,
-    val description: String?,
-    val schema: String?,
-    val query: String,
-    val dataSources: List<Stub>,
-    val expectedResult: String,
+    @FrontMatter("spec-version") val specVersion: String = "0.1",
+    @Title val name: String,
+    @Description val description: String?,
+    @Section("Query") @CodeBlock("taxiql") val query: String,
+    @Section("Data Sources") val dataSources: List<Stub>,
+    @Section("Expected Result") @CodeBlock("json", qualifierProperty = "resultFormat") val expectedResult: String,
     val resultFormat: ResultFormat = ResultFormat.JSON,
-    val specVersion: String = "0.1",
 )
 
-enum class ResultFormat {
-    JSON,
-    TYPED_INSTANCE
+enum class ResultFormat(override val qualifier: String?) : CodeBlockQualifier {
+    JSON(null),
+    TYPED_INSTANCE("typedInstance")
 }
 
 data class Stub(
-    val label: String,
-    val operationName: String,
-    val mode: StubMode,
-    val parameters: String?,
-    val response: String?,
-    val messages: List<String>?
+    @Heading val label: String,
+    @Directive("operation") val operationName: String,
+    @Directive("mode", defaultValue = "request-response") val mode: StubMode,
+    @LabeledCodeBlock("Request", "json") val parameters: String?,
+    @LabeledCodeBlock("Response", "json") val response: String?,
+    @LabeledCodeBlock("Message", "json") val messages: List<String>?
 )
 
 enum class StubMode {

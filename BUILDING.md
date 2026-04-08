@@ -57,12 +57,7 @@ The plugin itself injects the Orbital Maven repositories automatically, so no ot
 
 ## Bumping the version
 
-The version is set in **two places** (kept in sync manually):
-
-1. `preflight-core/build.gradle.kts` — `val PROJECT_VERSION = "0.1.0-SNAPSHOT"`
-2. `preflight-spec/build.gradle.kts` — `version = "0.1.0-SNAPSHOT"`
-
-All preflight-core submodules inherit their version from `preflight-core/build.gradle.kts`. The Gradle plugin also embeds it at build time via a generated `Versions.kt` constant.
+The version is set in a single file at the repo root: `version.txt`. Both `preflight-spec` and `preflight-core` builds read from it. The Gradle plugin also embeds it at build time via a generated `Versions.kt` constant.
 
 ## Releasing
 
@@ -73,7 +68,7 @@ Releases are triggered by pushing a git tag. GitHub Actions handles building, si
 git checkout main
 git pull
 
-# 2. Bump the version in both build.gradle.kts files, commit
+# 2. Bump the version in version.txt, commit
 
 # 3. Tag the release
 git tag v0.1.0

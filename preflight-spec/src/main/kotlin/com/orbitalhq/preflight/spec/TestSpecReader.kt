@@ -1,9 +1,6 @@
 package com.orbitalhq.preflight.spec
 
-import com.orbitalhq.preflight.spec.internal.DirectiveParser
 import com.orbitalhq.preflight.spec.internal.FrontMatterParser
-import org.commonmark.node.*
-import org.commonmark.parser.Parser
 import java.nio.file.Path
 import kotlin.io.path.name
 import kotlin.io.path.readText
@@ -11,8 +8,10 @@ import kotlin.io.path.readText
 object TestSpecReader {
 
     private val SUPPORTED_VERSIONS = setOf("0.1")
+    private val format = markdownFormat<TestSpec>()
 
     fun read(markdown: String, filename: String? = null): TestSpec {
+        // Validate front matter and spec version before delegating
         val frontMatter = FrontMatterParser.parse(markdown, filename)
         val specVersion = frontMatter.metadata["spec-version"]
             ?: throw SpecParseException(
@@ -26,228 +25,58 @@ object TestSpecReader {
             )
         }
 
-        val parser = Parser.builder().build()
-        val document = parser.parse(frontMatter.remainingContent)
+        val spec = try {
+            format.read(markdown, filename)
+        } catch (e: SpecParseException) {
+            throw translateError(e, filename)
+        }
 
-        var name: String? = null
-        var description: String? = null
-        var schema: String? = null
-        var query: String? = null
-        val dataSources = mutableListOf<Stub>()
-        var expectedResult: String? = null
-        var resultFormat: ResultFormat = ResultFormat.JSON
+        validate(spec, filename)
+        return spec
+    }
 
-        var currentH2: String? = null
-        var collectingDescription = false
-        val descriptionParts = mutableListOf<String>()
+    fun readFile(path: Path): TestSpec = read(path.readText(), filename = path.name)
 
-        // Stub parsing state
-        var currentStubLabel: String? = null
-        var currentStubDirectives = mutableListOf<String>()
-        var currentStubParameters: String? = null
-        var currentStubResponse: String? = null
-        var currentStubMessages = mutableListOf<String>()
-        var lastParagraphLabel: String? = null
-
-        fun flushStub() {
-            val label = currentStubLabel ?: return
-            val directives = DirectiveParser.parseAll(currentStubDirectives)
-
-            if (directives.isEmpty()) {
-                throw SpecParseException(
-                    "Stub \"$label\" is missing a source directive (<!-- operation: ... -->). Add an HTML comment after the ### heading.",
+    private fun translateError(e: SpecParseException, filename: String?): SpecParseException {
+        val msg = e.message ?: return e
+        return when {
+            msg.contains("'name'") ->
+                SpecParseException("Missing H1 heading. Every spec must have a # heading as the test name.", filename = filename)
+            msg.contains("'query'") ->
+                SpecParseException("Missing required section: ## Query", filename = filename)
+            msg.contains("'expectedResult'") ->
+                SpecParseException("Missing required section: ## Expected Result", filename = filename)
+            msg.contains("'dataSources'") ->
+                SpecParseException("Missing required section: ## Data Sources", filename = filename)
+            msg.contains("'operationName'") -> {
+                val stubName = e.section
+                SpecParseException(
+                    "Stub \"${stubName}\" is missing a source directive (<!-- operation: ... -->). Add an HTML comment after the ### heading.",
                     filename = filename,
                     section = "Data Sources"
                 )
             }
-
-            val operationName = directives["operation"]
-                ?: throw SpecParseException(
-                    "Directive is missing required field \"operation\". Expected: <!-- operation: operationName -->",
-                    filename = filename,
-                    section = label
-                )
-
-            val modeStr = directives["mode"]
-            val mode = when (modeStr) {
-                null, "request-response" -> StubMode.REQUEST_RESPONSE
-                "stream" -> StubMode.STREAM
-                else -> StubMode.REQUEST_RESPONSE
-            }
-
-            if (mode == StubMode.STREAM && currentStubMessages.isEmpty()) {
-                throw SpecParseException(
-                    "Stream-mode stub must have at least one Message: block.",
-                    filename = filename,
-                    section = label
-                )
-            }
-
-            dataSources.add(
-                Stub(
-                    label = label,
-                    operationName = operationName,
-                    mode = mode,
-                    response = if (mode == StubMode.REQUEST_RESPONSE) currentStubResponse else null,
-                    messages = if (mode == StubMode.STREAM) currentStubMessages.toList() else null,
-                    parameters = currentStubParameters
-                )
-            )
-
-            currentStubLabel = null
-            currentStubDirectives = mutableListOf()
-            currentStubParameters = null
-            currentStubResponse = null
-            currentStubMessages = mutableListOf()
-            lastParagraphLabel = null
+            else -> e
         }
+    }
 
-        var node: Node? = document.firstChild
-        while (node != null) {
-            when (node) {
-                is Heading -> {
-                    when (node.level) {
-                        1 -> {
-                            name = node.textContent()
-                            collectingDescription = true
-                            currentH2 = null
-                        }
-                        2 -> {
-                            if (collectingDescription) {
-                                collectingDescription = false
-                                description = descriptionParts.joinToString("\n\n").takeIf { it.isNotBlank() }
-                            }
-                            if (currentH2 == "Data Sources") {
-                                flushStub()
-                            }
-                            currentH2 = node.textContent()
-                            lastParagraphLabel = null
-                        }
-                        3 -> {
-                            if (currentH2 == "Data Sources") {
-                                flushStub()
-                                currentStubLabel = node.textContent()
-                                lastParagraphLabel = null
-                            }
-                        }
-                    }
-                }
-                is Paragraph -> {
-                    if (collectingDescription) {
-                        descriptionParts.add(node.textContent())
-                    } else if (currentH2 == "Data Sources" && currentStubLabel != null) {
-                        val text = node.textContent().trim()
-                        if (text.endsWith(":")) {
-                            lastParagraphLabel = text.dropLast(1).trim()
-                        } else {
-                            lastParagraphLabel = null
-                        }
-                    } else {
-                        lastParagraphLabel = null
-                    }
-                }
-                is HtmlBlock -> {
-                    if (currentH2 == "Data Sources" && currentStubLabel != null) {
-                        currentStubDirectives.add(node.literal.trim())
-                    }
-                }
-                is FencedCodeBlock -> {
-                    when (currentH2) {
-                        "Schema" -> {
-                            schema = node.literal.trimEnd()
-                        }
-                        "Query" -> {
-                            query = node.literal.trimEnd()
-                        }
-                        "Data Sources" -> {
-                            if (currentStubLabel != null) {
-                                val content = node.literal.trimEnd()
-                                when (lastParagraphLabel) {
-                                    "Request" -> currentStubParameters = content
-                                    "Response" -> currentStubResponse = content
-                                    "Message" -> currentStubMessages.add(content)
-                                }
-                                lastParagraphLabel = null
-                            }
-                        }
-                        "Expected Result" -> {
-                            expectedResult = node.literal.trimEnd()
-                            val info = node.info?.trim() ?: "json"
-                            val parts = info.split("\\s+".toRegex())
-                            resultFormat = when (parts.getOrNull(1)) {
-                                "typedInstance" -> ResultFormat.TYPED_INSTANCE
-                                else -> ResultFormat.JSON
-                            }
-                        }
-                    }
-                }
-                else -> {
-                    // Skip unknown node types
-                }
-            }
-            node = node.next
-        }
-
-        // Flush final stub if we were collecting one
-        if (currentH2 == "Data Sources") {
-            flushStub()
-        }
-
-        // Flush description if document ended while still collecting
-        if (collectingDescription) {
-            collectingDescription = false
-            description = descriptionParts.joinToString("\n\n").takeIf { it.isNotBlank() }
-        }
-
-        // Validation
-        if (name == null) {
-            throw SpecParseException("Missing H1 heading. Every spec must have a # heading as the test name.", filename = filename)
-        }
-        if (query == null) {
-            throw SpecParseException("Missing required section: ## Query", filename = filename)
-        }
-        if (dataSources.isEmpty() && currentH2 != "Data Sources") {
-            // If we never saw a Data Sources section at all
-            throw SpecParseException("Missing required section: ## Data Sources", filename = filename)
-        }
-        if (dataSources.isEmpty()) {
+    private fun validate(spec: TestSpec, filename: String?) {
+        if (spec.dataSources.isEmpty()) {
             throw SpecParseException(
                 "No stubs found under ## Data Sources. Add at least one ### heading with a source directive.",
                 filename = filename,
                 section = "Data Sources"
             )
         }
-        if (expectedResult == null) {
-            throw SpecParseException("Missing required section: ## Expected Result", filename = filename)
-        }
 
-        return TestSpec(
-            specVersion = specVersion,
-            name = name,
-            description = description,
-            schema = schema,
-            query = query,
-            dataSources = dataSources,
-            expectedResult = expectedResult,
-            resultFormat = resultFormat
-        )
-    }
-
-    fun readFile(path: Path): TestSpec = read(path.readText(), filename = path.name)
-
-    private fun Node.textContent(): String {
-        val sb = StringBuilder()
-        var child: Node? = this.firstChild
-        while (child != null) {
-            when (child) {
-                is Text -> sb.append(child.literal)
-                is Code -> sb.append(child.literal)
-                is SoftLineBreak -> sb.append(" ")
-                is HardLineBreak -> sb.append(" ")
-                else -> sb.append(child.textContent())
+        for (stub in spec.dataSources) {
+            if (stub.mode == StubMode.STREAM && stub.messages.isNullOrEmpty()) {
+                throw SpecParseException(
+                    "Stream-mode stub must have at least one Message: block.",
+                    filename = filename,
+                    section = stub.label
+                )
             }
-            child = child.next
         }
-        return sb.toString()
     }
 }
